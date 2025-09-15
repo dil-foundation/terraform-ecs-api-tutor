@@ -51,3 +51,13 @@ jobs:
       - name: Terraform Plan
         working-directory: dev
         run: terraform plan -out=tfplan
+        env:
+          TF_VAR_supabase_url: ${{ secrets.SUPABASE_URL }}
+          TF_VAR_supabase_service_key: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_eleven_api_key: ${{ secrets.ELEVEN_API_KEY }}
+          TF_VAR_eleven_voice_id: ${{ secrets.ELEVEN_VOICE_ID }}
+          TF_VAR_db_host: ${{ secrets.DB_HOST }}
+          TF_VAR_db_name: ${{ secrets.DB_NAME }}
+          TF_VAR_db_user: ${{ secrets.DB_USER }}
+          TF_VAR_db_password: ${{ secrets.DB_PASSWORD }}
