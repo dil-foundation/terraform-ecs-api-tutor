@@ -86,7 +86,7 @@ module "ecs_fargate" {
   container_definitions = jsonencode([
     {
       name      = local.container_name
-      image     = "342834686411.dkr.ecr.us-east-2.amazonaws.com/ai-tutor-backend:latest"
+      image     = "342834686411.dkr.ecr.us-east-2.amazonaws.com/ai-tutor-api:v3"
       essential = true
       logConfiguration = {
         logDriver = "awslogs"
