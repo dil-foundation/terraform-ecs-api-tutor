@@ -21,6 +21,11 @@ locals {
   db_name     = var.db_name
   db_user     = var.db_user
   db_password = var.db_password
+
+  # WordPress Configuration (from GitHub Secrets)
+  wp_site_url                 = var.wp_site_url
+  wp_api_username             = var.wp_api_username
+  wp_api_application_password = var.wp_api_application_password
 }
 
 module "cloud_watch" {
@@ -129,7 +134,16 @@ module "ecs_fargate" {
         { name = "DB_HOST", value = local.db_host },
         { name = "DB_NAME", value = local.db_name },
         { name = "DB_USER", value = local.db_user },
-        { name = "DB_PASSWORD", value = local.db_password }
+        { name = "DB_PASSWORD", value = local.db_password },
+
+        # WordPress Configuration
+        { name = "WP_SITE_URL", value = local.wp_site_url },
+        { name = "WP_API_USERNAME", value = local.wp_api_username },
+        { name = "WP_API_APPLICATION_PASSWORD", value = local.wp_api_application_password },
+
+        # Redis Configuration (AWS MemoryDB)
+        { name = "REDIS_HOST", value = local.enable_redis ? module.memorydb[0].cluster_endpoint : "localhost" },
+        { name = "REDIS_PORT", value = "6379" }
       ]
     }
   ])

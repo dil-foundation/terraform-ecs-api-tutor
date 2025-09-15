@@ -51,3 +51,21 @@ variable "db_password" {
   type        = string
   sensitive   = true
 }
+
+variable "wp_site_url" {
+  description = "WordPress site URL for the AI Tutor Backend"
+  type        = string
+  sensitive   = true
+}
+
+variable "wp_api_username" {
+  description = "WordPress API username for the AI Tutor Backend"
+  type        = string
+  sensitive   = true
+}
+
+variable "wp_api_application_password" {
+  description = "WordPress API application password for the AI Tutor Backend"
+  type        = string
+  sensitive   = true
+}
