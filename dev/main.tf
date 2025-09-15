@@ -129,7 +129,7 @@ module "ecs_fargate" {
 
         # Supabase Configuration (main database)
         { name = "SUPABASE_URL", value = local.supabase_url },
-        { name = "SUPABASE_ANON_KEY", value = local.supabase_service_key },
+        { name = "SUPABASE_SERVICE_KEY", value = local.supabase_service_key },
 
         # Database Configuration
         { name = "DB_HOST", value = local.db_host },
