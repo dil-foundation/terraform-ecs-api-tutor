@@ -125,6 +125,7 @@ module "ecs_fargate" {
 
         # ElevenLabs Configuration
         { name = "ELEVEN_API_KEY", value = local.eleven_api_key },
+        { name = "ELEVEN_VOICE_ID", value = local.eleven_voice_id },
 
         # Supabase Configuration (main database)
         { name = "SUPABASE_URL", value = local.supabase_url },
