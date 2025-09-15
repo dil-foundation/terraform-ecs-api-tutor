@@ -1,0 +1,13 @@
+# Copy this file to terraform.tfvars and fill in your values
+# Or set these as GitHub Actions secrets with the same names
+
+# Supabase Configuration
+supabase_url         = "https://your-project.supabase.co"
+supabase_service_key = "your-supabase-service-key"
+
+# OpenAI Configuration  
+openai_api_key       = "sk-your-openai-api-key"
+
+# ElevenLabs Configuration
+eleven_api_key       = "sk_your-elevenlabs-api-key"
+eleven_voice_id      = "your-voice-id"
