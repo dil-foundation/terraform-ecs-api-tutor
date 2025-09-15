@@ -15,6 +15,12 @@ locals {
   openai_api_key       = var.openai_api_key
   eleven_api_key       = var.eleven_api_key
   eleven_voice_id      = var.eleven_voice_id
+
+  # Database Configuration (from GitHub Secrets)
+  db_host     = var.db_host
+  db_name     = var.db_name
+  db_user     = var.db_user
+  db_password = var.db_password
 }
 
 module "cloud_watch" {
@@ -117,7 +123,13 @@ module "ecs_fargate" {
 
         # Supabase Configuration (main database)
         { name = "SUPABASE_URL", value = local.supabase_url },
-        { name = "SUPABASE_ANON_KEY", value = local.supabase_service_key }
+        { name = "SUPABASE_ANON_KEY", value = local.supabase_service_key },
+
+        # Database Configuration
+        { name = "DB_HOST", value = local.db_host },
+        { name = "DB_NAME", value = local.db_name },
+        { name = "DB_USER", value = local.db_user },
+        { name = "DB_PASSWORD", value = local.db_password }
       ]
     }
   ])

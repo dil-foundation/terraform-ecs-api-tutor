@@ -27,3 +27,27 @@ variable "eleven_voice_id" {
   type        = string
   sensitive   = true
 }
+
+variable "db_host" {
+  description = "Database host for the AI Tutor Backend"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_name" {
+  description = "Database name for the AI Tutor Backend"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_user" {
+  description = "Database username for the AI Tutor Backend"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_password" {
+  description = "Database password for the AI Tutor Backend"
+  type        = string
+  sensitive   = true
+}
