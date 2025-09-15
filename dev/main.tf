@@ -10,11 +10,11 @@ locals {
   enable_redis   = true  # Set to true to enable MemoryDB
 
   # Environment variables for AI Tutor Backend (from GitHub Secrets)
-  supabase_url           = var.supabase_url
-  supabase_service_key   = var.supabase_service_key
-  openai_api_key         = var.openai_api_key
-  eleven_api_key         = var.eleven_api_key
-  eleven_voice_id        = var.eleven_voice_id
+  supabase_url         = var.supabase_url
+  supabase_service_key = var.supabase_service_key
+  openai_api_key       = var.openai_api_key
+  eleven_api_key       = var.eleven_api_key
+  eleven_voice_id      = var.eleven_voice_id
 }
 
 module "cloud_watch" {
@@ -86,7 +86,7 @@ module "ecs_fargate" {
   container_definitions = jsonencode([
     {
       name      = local.container_name
-      image     = "342834686411.dkr.ecr.us-east-2.amazonaws.com/ai-tutor-backend:latest"
+      image     = "342834686411.dkr.ecr.us-east-2.amazonaws.com/ai-tutor-api:v3"
       essential = true
       logConfiguration = {
         logDriver = "awslogs"
@@ -105,16 +105,16 @@ module "ecs_fargate" {
       environment = [
         # Google Cloud Configuration
         { name = "GOOGLE_APPLICATION_CREDENTIALS", value = "/app/credentials/google-credentials.json" },
-        
+
         # OpenAI Configuration
         { name = "OPENAI_API_KEY", value = local.openai_api_key },
-        
+
         # Redis Configuration (for caching/sessions)
         { name = "REDIS_URL", value = local.enable_redis ? "redis://${module.memorydb[0].cluster_endpoint}:6379" : "redis://localhost:6379" },
-        
+
         # ElevenLabs Configuration
         { name = "ELEVEN_API_KEY", value = local.eleven_api_key },
-        
+
         # Supabase Configuration (main database)
         { name = "SUPABASE_URL", value = local.supabase_url },
         { name = "SUPABASE_ANON_KEY", value = local.supabase_service_key }
@@ -281,14 +281,14 @@ module "memorydb" {
   count  = local.enable_redis ? 1 : 0
   source = "../modules/memorydb"
 
-  name               = "${local.tenant_name}-memorydb"
-  description        = "MemoryDB cluster for AI Tutor Backend"
-  node_type          = "db.t4g.small"
-  port               = 6379
-  subnet_ids         = module.vpc.private_subnet_ids
-  security_group_ids = [aws_security_group.memorydb_sg[0].id]
-  engine_version     = "7.0"
-  num_shards         = 1
+  name                   = "${local.tenant_name}-memorydb"
+  description            = "MemoryDB cluster for AI Tutor Backend"
+  node_type              = "db.t4g.small"
+  port                   = 6379
+  subnet_ids             = module.vpc.private_subnet_ids
+  security_group_ids     = [aws_security_group.memorydb_sg[0].id]
+  engine_version         = "7.0"
+  num_shards             = 1
   num_replicas_per_shard = 1
 
   tags = {
@@ -370,7 +370,7 @@ module "ecr" {
   source = "../modules/ecr"
 
   repository_name = "ai-tutor-api"
-  
+
   tags = {
     Environment = "${local.environment}"
     Tenant      = "${local.tenant_name}"
