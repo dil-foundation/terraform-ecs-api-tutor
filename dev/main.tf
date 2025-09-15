@@ -86,7 +86,7 @@ module "cloudfront" {
 
 module "ecs_fargate" {
   source           = "../modules/ecs_fargate"
-  name             = "${local.tenant_name}-task-definition"
+  name             = "${local.tenant_name}-ai-tutor-service-v2"
   container_name   = local.container_name
   container_port   = local.container_port
   cluster          = aws_ecs_cluster.ecs-cluster.arn
@@ -212,13 +212,13 @@ data "aws_iam_policy" "ecs_task_execution" {
 }
 
 locals {
-  container_name = "${local.tenant_name}-service"
+  container_name = "${local.tenant_name}-ai-tutor-container-v2"
   container_port = tonumber(module.alb.alb_target_group_port)
   #host_port = tonumber(module.alb.http_port)
 }
 
 resource "aws_ecs_cluster" "ecs-cluster" {
-  name = "${local.tenant_name}-ecs-cluster"
+  name = "${local.tenant_name}-ecs-fargate-cluster-v2"
 }
 
 module "alb" {

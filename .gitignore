@@ -1,17 +1,35 @@
 # Terraform files
 *.tfstate
 *.tfstate.*
-*.tfplan
-*.tfplan.*
-.terraform/
-.terraform.lock.hcl
-
-# Sensitive configuration files
-terraform.tfvars
 *.tfvars
 !*.tfvars.example
+.terraform/
+.terraform.lock.hcl
+crash.log
+crash.*.log
+*.tfplan
+*.tfplan.*
+.terraformrc
+terraform.rc
 
-# OS generated files
+# Sensitive files
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+.env
+.env.local
+.env.*.local
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS files
 .DS_Store
 .DS_Store?
 ._*
@@ -20,15 +38,16 @@ terraform.tfvars
 ehthumbs.db
 Thumbs.db
 
-# IDE files
-.vscode/
-.idea/
-*.swp
-*.swo
-
 # Logs
 *.log
+logs/
 
 # Temporary files
+tmp/
+temp/
 *.tmp
 *.temp
+
+# Backup files
+*.bak
+*.backup
