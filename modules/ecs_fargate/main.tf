@@ -2,12 +2,12 @@
 # ECS Service
 # https://www.terraform.io/docs/providers/aws/r/ecs_service.html
 resource "aws_ecs_service" "default" {
-  count = var.enabled ? 1 : 0
-  name = var.name
-  task_definition = aws_ecs_task_definition.default[0].arn
-  cluster = var.cluster
-  desired_count = var.desired_count
-  deployment_maximum_percent = var.deployment_maximum_percent
+  count                              = var.enabled ? 1 : 0
+  name                               = var.name
+  task_definition                    = aws_ecs_task_definition.default[0].arn
+  cluster                            = var.cluster
+  desired_count                      = var.desired_count
+  deployment_maximum_percent         = var.deployment_maximum_percent
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
 
   deployment_controller {
@@ -185,7 +185,7 @@ data "aws_iam_policy" "ecs_task_execution" {
 # Application Auto Scaling Target
 resource "aws_appautoscaling_target" "ecs_target" {
   count = var.enabled && var.enable_autoscaling ? 1 : 0
-  
+
   max_capacity       = var.max_capacity
   min_capacity       = var.min_capacity
   resource_id        = "service/${var.cluster}/${aws_ecs_service.default[0].name}"
@@ -196,7 +196,7 @@ resource "aws_appautoscaling_target" "ecs_target" {
 # Application Auto Scaling Policy - CPU
 resource "aws_appautoscaling_policy" "ecs_policy_cpu" {
   count = var.enabled && var.enable_autoscaling ? 1 : 0
-  
+
   name               = "${var.name}-cpu-scaling"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs_target[0].resource_id
@@ -214,7 +214,7 @@ resource "aws_appautoscaling_policy" "ecs_policy_cpu" {
 # Application Auto Scaling Policy - Memory
 resource "aws_appautoscaling_policy" "ecs_policy_memory" {
   count = var.enabled && var.enable_autoscaling ? 1 : 0
-  
+
   name               = "${var.name}-memory-scaling"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs_target[0].resource_id
@@ -232,7 +232,7 @@ resource "aws_appautoscaling_policy" "ecs_policy_memory" {
 # CloudWatch Log Group for ECS Service
 resource "aws_cloudwatch_log_group" "ecs_service" {
   count = var.enabled && var.enable_autoscaling ? 1 : 0
-  
+
   name              = "/ecs/${var.name}"
   retention_in_days = var.log_retention_in_days
 

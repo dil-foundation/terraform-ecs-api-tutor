@@ -23,7 +23,7 @@ resource "aws_cloudfront_distribution" "cdn" {
       origin_access_identity = var.origin_access_identity
     }
   }
-  
+
   # back (optional)
   dynamic "origin" {
     for_each = var.enable_backend ? [1] : []
@@ -126,7 +126,7 @@ resource "aws_cloudfront_distribution" "cdn" {
       target_origin_id = data.aws_lb.aws_alb[0].name
       forwarded_values {
         query_string = true
-        headers      = ["Accept", "Accept-Charset", "Accept-Datetime","Accept-Encoding","Accept-Language","Authorization","Host","Origin","Referer"]
+        headers      = ["Accept", "Accept-Charset", "Accept-Datetime", "Accept-Encoding", "Accept-Language", "Authorization", "Host", "Origin", "Referer"]
         cookies {
           forward = "all"
         }

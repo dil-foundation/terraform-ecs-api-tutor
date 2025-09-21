@@ -109,8 +109,8 @@ resource "aws_api_gateway_integration" "get_files" {
   http_method = aws_api_gateway_method.get_files.http_method
 
   integration_http_method = "POST"
-  type                   = "AWS_PROXY"
-  uri                    = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.api_proxy.arn}/invocations"
+  type                    = "AWS_PROXY"
+  uri                     = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.api_proxy.arn}/invocations"
 }
 
 # API Gateway Integration - POST /api/files
@@ -120,8 +120,8 @@ resource "aws_api_gateway_integration" "post_files" {
   http_method = aws_api_gateway_method.post_files.http_method
 
   integration_http_method = "POST"
-  type                   = "AWS_PROXY"
-  uri                    = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.api_proxy.arn}/invocations"
+  type                    = "AWS_PROXY"
+  uri                     = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.api_proxy.arn}/invocations"
 }
 
 # API Gateway Integration - POST /api/files/upload
@@ -131,8 +131,8 @@ resource "aws_api_gateway_integration" "post_files_upload" {
   http_method = aws_api_gateway_method.post_files_upload.http_method
 
   integration_http_method = "POST"
-  type                   = "AWS_PROXY"
-  uri                    = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.api_proxy.arn}/invocations"
+  type                    = "AWS_PROXY"
+  uri                     = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.api_proxy.arn}/invocations"
 }
 
 # API Gateway Integration - GET /api/files/{id}
@@ -142,8 +142,8 @@ resource "aws_api_gateway_integration" "get_file" {
   http_method = aws_api_gateway_method.get_file.http_method
 
   integration_http_method = "POST"
-  type                   = "AWS_PROXY"
-  uri                    = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.api_proxy.arn}/invocations"
+  type                    = "AWS_PROXY"
+  uri                     = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.api_proxy.arn}/invocations"
 }
 
 # API Gateway Integration - DELETE /api/files/{id}
@@ -153,8 +153,8 @@ resource "aws_api_gateway_integration" "delete_file" {
   http_method = aws_api_gateway_method.delete_file.http_method
 
   integration_http_method = "POST"
-  type                   = "AWS_PROXY"
-  uri                    = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.api_proxy.arn}/invocations"
+  type                    = "AWS_PROXY"
+  uri                     = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.api_proxy.arn}/invocations"
 }
 
 # API Gateway Integration - GET /api/health
@@ -164,20 +164,20 @@ resource "aws_api_gateway_integration" "get_health" {
   http_method = aws_api_gateway_method.get_health.http_method
 
   integration_http_method = "POST"
-  type                   = "AWS_PROXY"
-  uri                    = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.api_proxy.arn}/invocations"
+  type                    = "AWS_PROXY"
+  uri                     = "arn:aws:apigateway:${data.aws_region.current.name}:lambda:path/2015-03-31/functions/${aws_lambda_function.api_proxy.arn}/invocations"
 }
 
 # Removed unused integrations for auth, users, and collections APIs
 
 # Lambda function to proxy requests to ECS
 resource "aws_lambda_function" "api_proxy" {
-  filename         = "${path.module}/api_proxy.zip"
-  function_name    = "${var.tenant_name}-api-proxy"
-  role            = aws_iam_role.lambda_role.arn
-  handler         = "index.handler"
-  runtime         = "python3.9"
-  timeout         = 30
+  filename      = "${path.module}/api_proxy.zip"
+  function_name = "${var.tenant_name}-api-proxy"
+  role          = aws_iam_role.lambda_role.arn
+  handler       = "index.handler"
+  runtime       = "python3.9"
+  timeout       = 30
 
   vpc_config {
     subnet_ids         = var.subnet_ids
@@ -286,7 +286,7 @@ resource "aws_api_gateway_stage" "stage" {
 # API Gateway Method Settings for throttling
 resource "aws_api_gateway_method_settings" "throttle_settings" {
   count = var.throttle_rate_limit > 0 ? 1 : 0
-  
+
   rest_api_id = aws_api_gateway_rest_api.api.id
   stage_name  = aws_api_gateway_stage.stage.stage_name
   method_path = "*/*"
@@ -315,11 +315,11 @@ resource "aws_api_gateway_method" "options_file_id" {
 }
 
 resource "aws_api_gateway_integration" "options_files" {
-  count         = var.enable_cors ? 1 : 0
-  rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.files.id
-  http_method   = aws_api_gateway_method.options_files[0].http_method
-  type          = "MOCK"
+  count       = var.enable_cors ? 1 : 0
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.files.id
+  http_method = aws_api_gateway_method.options_files[0].http_method
+  type        = "MOCK"
 
   request_templates = {
     "application/json" = jsonencode({
@@ -329,11 +329,11 @@ resource "aws_api_gateway_integration" "options_files" {
 }
 
 resource "aws_api_gateway_integration" "options_file_id" {
-  count         = var.enable_cors ? 1 : 0
-  rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.file_id.id
-  http_method   = aws_api_gateway_method.options_file_id[0].http_method
-  type          = "MOCK"
+  count       = var.enable_cors ? 1 : 0
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.file_id.id
+  http_method = aws_api_gateway_method.options_file_id[0].http_method
+  type        = "MOCK"
 
   request_templates = {
     "application/json" = jsonencode({
@@ -343,11 +343,11 @@ resource "aws_api_gateway_integration" "options_file_id" {
 }
 
 resource "aws_api_gateway_method_response" "options_files" {
-  count         = var.enable_cors ? 1 : 0
-  rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.files.id
-  http_method   = aws_api_gateway_method.options_files[0].http_method
-  status_code   = "200"
+  count       = var.enable_cors ? 1 : 0
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.files.id
+  http_method = aws_api_gateway_method.options_files[0].http_method
+  status_code = "200"
 
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = true
@@ -357,11 +357,11 @@ resource "aws_api_gateway_method_response" "options_files" {
 }
 
 resource "aws_api_gateway_method_response" "options_file_id" {
-  count         = var.enable_cors ? 1 : 0
-  rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.file_id.id
-  http_method   = aws_api_gateway_method.options_file_id[0].http_method
-  status_code   = "200"
+  count       = var.enable_cors ? 1 : 0
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.file_id.id
+  http_method = aws_api_gateway_method.options_file_id[0].http_method
+  status_code = "200"
 
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = true
@@ -371,11 +371,11 @@ resource "aws_api_gateway_method_response" "options_file_id" {
 }
 
 resource "aws_api_gateway_integration_response" "options_files" {
-  count         = var.enable_cors ? 1 : 0
-  rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.files.id
-  http_method   = aws_api_gateway_method.options_files[0].http_method
-  status_code   = aws_api_gateway_method_response.options_files[0].status_code
+  count       = var.enable_cors ? 1 : 0
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.files.id
+  http_method = aws_api_gateway_method.options_files[0].http_method
+  status_code = aws_api_gateway_method_response.options_files[0].status_code
 
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"
@@ -385,11 +385,11 @@ resource "aws_api_gateway_integration_response" "options_files" {
 }
 
 resource "aws_api_gateway_integration_response" "options_file_id" {
-  count         = var.enable_cors ? 1 : 0
-  rest_api_id   = aws_api_gateway_rest_api.api.id
-  resource_id   = aws_api_gateway_resource.file_id.id
-  http_method   = aws_api_gateway_method.options_file_id[0].http_method
-  status_code   = aws_api_gateway_method_response.options_file_id[0].status_code
+  count       = var.enable_cors ? 1 : 0
+  rest_api_id = aws_api_gateway_rest_api.api.id
+  resource_id = aws_api_gateway_resource.file_id.id
+  http_method = aws_api_gateway_method.options_file_id[0].http_method
+  status_code = aws_api_gateway_method_response.options_file_id[0].status_code
 
   response_parameters = {
     "method.response.header.Access-Control-Allow-Headers" = "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'"

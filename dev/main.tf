@@ -137,7 +137,7 @@ module "ecs_fargate" {
         # Application Environment
         { name = "ENVIRONMENT", value = "production" }
       ]
-      
+
       # Add secrets for Google credentials
       secrets = [
         {
@@ -214,7 +214,7 @@ data "aws_iam_policy" "ecs_task_execution" {
 resource "aws_secretsmanager_secret" "google_credentials" {
   name        = "${local.tenant_name}-google-credentials"
   description = "Google Cloud Service Account credentials for AI Tutor"
-  
+
   tags = {
     Environment = local.environment
     Tenant      = local.tenant_name
