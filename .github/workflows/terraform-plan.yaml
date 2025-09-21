@@ -1,4 +1,4 @@
-name: Dev-Terraform-Plan
+name: Prod-Terraform-Plan
 
 on:
   workflow_dispatch:
@@ -31,25 +31,25 @@ jobs:
         with:
           path: |
             ~/.terraform.d/plugin-cache
-            dev/.terraform
+            prod/.terraform
           key: ${{ runner.os }}-terraform-${{ hashFiles('**/*.tf') }}
           restore-keys: |
             ${{ runner.os }}-terraform-
             
       - name: Terraform Init
-        working-directory: dev
+        working-directory: prod
         run: terraform init -upgrade 
 
       - name: Terraform fmt check
-        working-directory: dev
+        working-directory: prod
         run: terraform fmt -check
 
       - name: Terraform Validate
-        working-directory: dev
+        working-directory: prod
         run: terraform validate
 
       - name: Clear Terraform State Lock
-        working-directory: dev
+        working-directory: prod
         run: |
           echo "Clearing any existing state locks..."
           # Method 1: Try to unlock with known ID
@@ -65,7 +65,7 @@ jobs:
         continue-on-error: true
 
       - name: Terraform Plan
-        working-directory: dev
+        working-directory: prod
         run: terraform plan -lock=false -out=tfplan
         env:
           TF_VAR_supabase_url: ${{ secrets.SUPABASE_URL }}

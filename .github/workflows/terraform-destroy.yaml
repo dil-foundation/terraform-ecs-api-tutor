@@ -1,4 +1,4 @@
-name: Dev-Terraform-Destroy
+name: Prod-Terraform-Destroy
 
 on:
   workflow_dispatch:
@@ -31,25 +31,25 @@ jobs:
         with:
           path: |
             ~/.terraform.d/plugin-cache
-            dev/.terraform
+            prod/.terraform
           key: ${{ runner.os }}-terraform-${{ hashFiles('**/*.tf') }}
           restore-keys: |
             ${{ runner.os }}-terraform-
             
       - name: Terraform Init
-        working-directory: dev
+        working-directory: prod
         run: terraform init 
 
       - name: Terraform fmt check
-        working-directory: dev
+        working-directory: prod
         run: terraform fmt -check
 
       - name: Terraform Validate
-        working-directory: dev
+        working-directory: prod
         run: terraform validate
 
       - name: Terraform Plan
-        working-directory: dev
+        working-directory: prod
         run: terraform plan -out=tfplan
         env:
           TF_VAR_supabase_url: ${{ secrets.SUPABASE_URL }}
@@ -66,7 +66,7 @@ jobs:
           TF_VAR_wp_api_application_password: ${{ secrets.WP_API_APPLICATION_PASSWORD }}
 
       - name: Terraform Destroy
-        working-directory: dev
+        working-directory: prod
         run: terraform destroy --auto-approve
         env:
           TF_VAR_supabase_url: ${{ secrets.SUPABASE_URL }}

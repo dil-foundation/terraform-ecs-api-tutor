@@ -56,5 +56,5 @@ variable "google_credentials_json" {
 variable "container_image_tag" {
   description = "Docker image tag for the AI Tutor API container"
   type        = string
-  default     = "0.0.11"
+  default     = "latest"
 }

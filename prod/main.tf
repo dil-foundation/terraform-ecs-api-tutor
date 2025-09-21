@@ -1,6 +1,6 @@
 locals {
-  tenant_name            = "dil-fnd"
-  environment            = "dev"
+  tenant_name            = "dil-prod"
+  environment            = "prod"
   cidr_block             = "12.0.0.0/16"
   tf_remote_state_bucket = "dilf-dev-tf-remote-state-342834686411"
 
@@ -92,7 +92,7 @@ module "ecs_fargate" {
   container_definitions = jsonencode([
     {
       name      = local.container_name
-      image     = "342834686411.dkr.ecr.us-east-2.amazonaws.com/ai-tutor-api:${var.container_image_tag}"
+      image     = "342834686411.dkr.ecr.us-east-2.amazonaws.com/ai-tutor-api:v4-fixed"
       essential = true
       cpu       = 2048
       memory    = 16384
@@ -128,11 +128,12 @@ module "ecs_fargate" {
         { name = "WP_API_APPLICATION_PASSWORD", value = local.wp_api_application_password },
 
         # Redis Configuration (AWS MemoryDB)
+        { name = "REDIS_URL", value = local.enable_redis ? "redis://${module.memorydb[0].cluster_endpoint}:6379" : "redis://localhost:6379" },
         { name = "REDIS_HOST", value = local.enable_redis ? module.memorydb[0].cluster_endpoint : "localhost" },
         { name = "REDIS_PORT", value = "6379" },
 
         # Application Environment
-        { name = "ENVIRONMENT", value = "development" },
+        { name = "ENVIRONMENT", value = "production" },
 
         # Task definition version identifier to force updates
         { name = "TASK_VERSION", value = "v2.0-2vcpu-16gb-20250921" }
@@ -148,12 +149,12 @@ module "ecs_fargate" {
     }
   ])
 
-  desired_count                      = 2
+  desired_count                      = 1
   deployment_maximum_percent         = 200
   deployment_minimum_healthy_percent = 100
   deployment_controller_type         = "ECS"
   assign_public_ip                   = true
-  health_check_grace_period_seconds  = 60
+  health_check_grace_period_seconds  = 120
   platform_version                   = "LATEST"
   source_cidr_blocks                 = ["0.0.0.0/0"]
   cpu                                = 2048
@@ -177,6 +178,8 @@ module "ecs_fargate" {
   tags = {
     Environment = "${local.environment}"
     Tenant      = "${local.tenant_name}"
+    Version     = "v2.0-2vcpu-16gb"
+    LastUpdated = "2025-09-21"
   }
 }
 
@@ -305,9 +308,9 @@ module "alb" {
   slow_start                       = 0
   health_check_path                = "/health"
   health_check_healthy_threshold   = 2
-  health_check_unhealthy_threshold = 5
-  health_check_timeout             = 15
-  health_check_interval            = 30
+  health_check_unhealthy_threshold = 10
+  health_check_timeout             = 30
+  health_check_interval            = 60
   health_check_matcher             = "200-399"
   health_check_port                = "traffic-port"
   health_check_protocol            = "HTTP"
