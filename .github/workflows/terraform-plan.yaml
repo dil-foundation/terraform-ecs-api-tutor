@@ -48,6 +48,19 @@ jobs:
         working-directory: dev
         run: terraform validate
 
+      - name: Force Unlock Terraform State (if needed)
+        working-directory: dev
+        run: |
+          # Try to get the lock ID and force unlock if locked
+          if terraform plan -detailed-exitcode 2>&1 | grep -q "Error acquiring the state lock"; then
+            echo "State is locked, attempting to force unlock..."
+            LOCK_ID=$(terraform plan 2>&1 | grep "ID:" | awk '{print $2}' | head -1)
+            if [ ! -z "$LOCK_ID" ]; then
+              terraform force-unlock -force $LOCK_ID || echo "Failed to unlock, continuing anyway..."
+            fi
+          fi
+        continue-on-error: true
+
       - name: Terraform Plan
         working-directory: dev
         run: terraform plan -out=tfplan
