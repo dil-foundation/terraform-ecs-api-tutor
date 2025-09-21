@@ -69,3 +69,9 @@ variable "wp_api_application_password" {
   type        = string
   sensitive   = true
 }
+
+variable "google_credentials_json" {
+  description = "Google Cloud Service Account credentials JSON for the AI Tutor Backend"
+  type        = string
+  sensitive   = true
+}

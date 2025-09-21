@@ -11,3 +11,11 @@ openai_api_key       = "sk-your-openai-api-key"
 # ElevenLabs Configuration
 eleven_api_key       = "sk_your-elevenlabs-api-key"
 eleven_voice_id      = "your-voice-id"
+
+# WordPress Configuration
+wp_site_url                 = "https://your-wordpress-site.com"
+wp_api_username             = "your-wp-api-username"
+wp_api_application_password = "your-wp-application-password"
+
+# Google Cloud Credentials (JSON content as string)
+google_credentials_json = "{\"type\":\"service_account\",\"project_id\":\"your-project\",...}"

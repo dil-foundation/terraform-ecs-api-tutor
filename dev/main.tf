@@ -114,14 +114,8 @@ module "ecs_fargate" {
         }
       ]
       environment = [
-        # Google Cloud Configuration
-        { name = "GOOGLE_APPLICATION_CREDENTIALS", value = "/app/credentials/google-credentials.json" },
-
         # OpenAI Configuration
         { name = "OPENAI_API_KEY", value = local.openai_api_key },
-
-        # Redis Configuration (for caching/sessions)
-        { name = "REDIS_URL", value = local.enable_redis ? "redis://${module.memorydb[0].cluster_endpoint}:6379" : "redis://localhost:6379" },
 
         # ElevenLabs Configuration
         { name = "ELEVEN_API_KEY", value = local.eleven_api_key },
@@ -131,12 +125,6 @@ module "ecs_fargate" {
         { name = "SUPABASE_URL", value = local.supabase_url },
         { name = "SUPABASE_SERVICE_KEY", value = local.supabase_service_key },
 
-        # Database Configuration
-        { name = "DB_HOST", value = local.db_host },
-        { name = "DB_NAME", value = local.db_name },
-        { name = "DB_USER", value = local.db_user },
-        { name = "DB_PASSWORD", value = local.db_password },
-
         # WordPress Configuration
         { name = "WP_SITE_URL", value = local.wp_site_url },
         { name = "WP_API_USERNAME", value = local.wp_api_username },
@@ -144,7 +132,18 @@ module "ecs_fargate" {
 
         # Redis Configuration (AWS MemoryDB)
         { name = "REDIS_HOST", value = local.enable_redis ? module.memorydb[0].cluster_endpoint : "localhost" },
-        { name = "REDIS_PORT", value = "6379" }
+        { name = "REDIS_PORT", value = "6379" },
+
+        # Application Environment
+        { name = "ENVIRONMENT", value = "production" }
+      ]
+      
+      # Add secrets for Google credentials
+      secrets = [
+        {
+          name      = "GOOGLE_APPLICATION_CREDENTIALS_JSON"
+          valueFrom = aws_secretsmanager_secret.google_credentials.arn
+        }
       ]
     }
   ])
@@ -154,7 +153,7 @@ module "ecs_fargate" {
   deployment_minimum_healthy_percent = 100
   deployment_controller_type         = "ECS"
   assign_public_ip                   = true
-  health_check_grace_period_seconds  = 10
+  health_check_grace_period_seconds  = 60
   platform_version                   = "LATEST"
   source_cidr_blocks                 = ["0.0.0.0/0"]
   cpu                                = 1024
@@ -211,6 +210,48 @@ data "aws_iam_policy" "ecs_task_execution" {
   arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
 }
 
+# AWS Secrets Manager for Google Credentials
+resource "aws_secretsmanager_secret" "google_credentials" {
+  name        = "${local.tenant_name}-google-credentials"
+  description = "Google Cloud Service Account credentials for AI Tutor"
+  
+  tags = {
+    Environment = local.environment
+    Tenant      = local.tenant_name
+  }
+}
+
+resource "aws_secretsmanager_secret_version" "google_credentials" {
+  secret_id     = aws_secretsmanager_secret.google_credentials.id
+  secret_string = var.google_credentials_json
+}
+
+# Additional IAM policy for accessing secrets
+resource "aws_iam_policy" "secrets_access" {
+  name        = "${local.tenant_name}-ecs-secrets-access"
+  description = "Policy to allow ECS tasks to access secrets"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue"
+        ]
+        Resource = [
+          aws_secretsmanager_secret.google_credentials.arn
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "secrets_access" {
+  role       = aws_iam_role.default.name
+  policy_arn = aws_iam_policy.secrets_access.arn
+}
+
 locals {
   container_name = "${local.tenant_name}-ai-tutor-container-v2"
   container_port = tonumber(module.alb.alb_target_group_port)
@@ -252,8 +293,8 @@ module "alb" {
   slow_start                       = 0
   health_check_path                = "/health"
   health_check_healthy_threshold   = 2
-  health_check_unhealthy_threshold = 3
-  health_check_timeout             = 10
+  health_check_unhealthy_threshold = 5
+  health_check_timeout             = 15
   health_check_interval            = 30
   health_check_matcher             = "200-399"
   health_check_port                = "traffic-port"
