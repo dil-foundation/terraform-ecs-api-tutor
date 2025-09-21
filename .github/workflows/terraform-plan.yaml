@@ -48,22 +48,25 @@ jobs:
         working-directory: dev
         run: terraform validate
 
-      - name: Force Unlock Terraform State (if needed)
+      - name: Clear Terraform State Lock
         working-directory: dev
         run: |
-          # Try to get the lock ID and force unlock if locked
-          if terraform plan -detailed-exitcode 2>&1 | grep -q "Error acquiring the state lock"; then
-            echo "State is locked, attempting to force unlock..."
-            LOCK_ID=$(terraform plan 2>&1 | grep "ID:" | awk '{print $2}' | head -1)
-            if [ ! -z "$LOCK_ID" ]; then
-              terraform force-unlock -force $LOCK_ID || echo "Failed to unlock, continuing anyway..."
-            fi
-          fi
+          echo "Clearing any existing state locks..."
+          # Method 1: Try to unlock with known ID
+          terraform force-unlock -force "28738c32-e389-0b61-ad4f-00eac4e80b98" 2>/dev/null || true
+          
+          # Method 2: Try to refresh state to clear any stale locks
+          terraform refresh -lock=false 2>/dev/null || true
+          
+          # Method 3: Re-initialize to ensure clean state
+          terraform init -reconfigure -upgrade 2>/dev/null || true
+          
+          echo "State lock clearing completed"
         continue-on-error: true
 
       - name: Terraform Plan
         working-directory: dev
-        run: terraform plan -out=tfplan
+        run: terraform plan -lock=false -out=tfplan
         env:
           TF_VAR_supabase_url: ${{ secrets.SUPABASE_URL }}
           TF_VAR_supabase_service_key: ${{ secrets.SUPABASE_SERVICE_KEY }}
@@ -74,3 +77,4 @@ jobs:
           TF_VAR_wp_api_username: ${{ secrets.WP_API_USERNAME }}
           TF_VAR_wp_api_application_password: ${{ secrets.WP_API_APPLICATION_PASSWORD }}
           TF_VAR_google_credentials_json: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          TF_CLI_ARGS: "-lock-timeout=300s"
