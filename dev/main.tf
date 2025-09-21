@@ -16,11 +16,6 @@ locals {
   eleven_api_key       = var.eleven_api_key
   eleven_voice_id      = var.eleven_voice_id
 
-  # Database Configuration (from GitHub Secrets)
-  db_host     = var.db_host
-  db_name     = var.db_name
-  db_user     = var.db_user
-  db_password = var.db_password
 
   # WordPress Configuration (from GitHub Secrets)
   wp_site_url                 = var.wp_site_url
