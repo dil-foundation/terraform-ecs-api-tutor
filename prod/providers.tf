@@ -13,7 +13,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Environment = "dev"
+      Environment = "prod-new"
       Project     = "ai-tutor-backend"
       ManagedBy   = "terraform"
     }

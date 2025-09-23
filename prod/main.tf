@@ -1,8 +1,8 @@
 locals {
-  tenant_name            = "dil-prod"
+  tenant_name            = "dil-prod-v2"
   environment            = "prod"
   cidr_block             = "12.0.0.0/16"
-  tf_remote_state_bucket = "dilf-dev-tf-remote-state-342834686411"
+  tf_remote_state_bucket = "dil-prod-terraform-state"
 
   # Cost saving flags
   enable_rds     = false # Set to false - using MemoryDB instead
@@ -46,16 +46,16 @@ module "cloudfront" {
   origin_access_identity = module.s3-bucket.origin_access_identity
   enable_backend         = true
 
-  # API Gateway configuration
-  enable_api_gateway      = true
-  api_gateway_domain_name = module.api_gateway.api_gateway_domain_name
-  api_gateway_invoke_url  = module.api_gateway.api_gateway_invoke_url
+  # API Gateway configuration - DISABLED (routing directly to ALB)
+  enable_api_gateway      = false
+  api_gateway_domain_name = ""
+  api_gateway_invoke_url  = ""
 
   min_ttl     = 0
   default_ttl = 0
   max_ttl     = 0
 
-  depends_on = [module.api_gateway]
+  # depends_on = [module.api_gateway]  # Removed - no longer using API Gateway
 
   tags = {
     Environment = "${local.environment}"
@@ -85,7 +85,7 @@ module "ecs_fargate" {
   container_name   = local.container_name
   container_port   = local.container_port
   cluster          = aws_ecs_cluster.ecs-cluster.arn
-  subnets          = module.vpc.public_subnet_ids
+  subnets          = module.vpc.private_subnet_ids
   target_group_arn = module.alb.alb_target_group_arn
   vpc_id           = module.vpc.vpc_id
 
@@ -149,12 +149,12 @@ module "ecs_fargate" {
     }
   ])
 
-  desired_count                      = 1
+  desired_count                      = 2
   deployment_maximum_percent         = 200
   deployment_minimum_healthy_percent = 100
   deployment_controller_type         = "ECS"
-  assign_public_ip                   = true
-  health_check_grace_period_seconds  = 120
+  assign_public_ip                   = false
+  health_check_grace_period_seconds  = 300
   platform_version                   = "LATEST"
   source_cidr_blocks                 = ["0.0.0.0/0"]
   cpu                                = 2048
@@ -166,6 +166,7 @@ module "ecs_fargate" {
 
   create_ecs_task_execution_role = false
   ecs_task_execution_role_arn    = aws_iam_role.default.arn
+  ecs_task_role_arn              = aws_iam_role.task_role.arn
 
   # Auto Scaling Configuration
   enable_autoscaling    = true
@@ -183,8 +184,15 @@ module "ecs_fargate" {
   }
 }
 
+# ECS Task Execution Role (for pulling images, writing logs)
 resource "aws_iam_role" "default" {
   name               = "${local.tenant_name}-ecs-task-execution-for-ecs-fargate"
+  assume_role_policy = data.aws_iam_policy_document.assume_role_policy.json
+}
+
+# ECS Task Role (for container applications to access AWS services)
+resource "aws_iam_role" "task_role" {
+  name               = "${local.tenant_name}-ecs-task-role-for-ecs-fargate"
   assume_role_policy = data.aws_iam_policy_document.assume_role_policy.json
 }
 
@@ -240,10 +248,11 @@ resource "aws_iam_policy" "secrets_access" {
       {
         Effect = "Allow"
         Action = [
-          "secretsmanager:GetSecretValue"
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
         ]
         Resource = [
-          aws_secretsmanager_secret.google_credentials.arn
+          "${aws_secretsmanager_secret.google_credentials.arn}*"
         ]
       },
       {
@@ -267,6 +276,34 @@ resource "aws_iam_role_policy_attachment" "secrets_access" {
   policy_arn = aws_iam_policy.secrets_access.arn
 }
 
+# Additional policy for ECS Exec
+resource "aws_iam_policy" "ecs_exec" {
+  name        = "${local.tenant_name}-ecs-exec-policy"
+  description = "Policy to allow ECS Exec functionality"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssmmessages:CreateControlChannel",
+          "ssmmessages:CreateDataChannel",
+          "ssmmessages:OpenControlChannel",
+          "ssmmessages:OpenDataChannel"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ecs_exec" {
+  role       = aws_iam_role.default.name
+  policy_arn = aws_iam_policy.ecs_exec.arn
+}
+
+
 locals {
   container_name = "${local.tenant_name}-ai-tutor-container-v2"
   container_port = tonumber(module.alb.alb_target_group_port)
@@ -276,6 +313,7 @@ locals {
 resource "aws_ecs_cluster" "ecs-cluster" {
   name = "${local.tenant_name}-ecs-fargate-cluster-v2"
 }
+
 
 module "alb" {
   source                     = "../modules/alb"
@@ -347,6 +385,11 @@ module "vpc" {
   public_availability_zones  = data.aws_availability_zones.available.names
   private_subnet_cidr_blocks = [cidrsubnet(local.cidr_block, 8, 2), cidrsubnet(local.cidr_block, 8, 3)]
   private_availability_zones = data.aws_availability_zones.available.names
+  
+  # Enable NAT Gateway for private subnet connectivity
+  enabled_nat_gateway        = true
+  enabled_single_nat_gateway = true  # Use single NAT gateway to save costs
+  
   tags = {
     Environment = "${local.environment}"
     Tenant      = "${local.tenant_name}"
@@ -387,11 +430,22 @@ resource "aws_security_group" "memorydb_sg" {
   description = "Security group for MemoryDB"
   vpc_id      = module.vpc.vpc_id
 
+  # Allow access from ECS tasks security group
+  ingress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [module.ecs_fargate.security_group_id]
+    description     = "Allow Redis access from ECS tasks"
+  }
+
+  # Fallback rule - allow access from VPC CIDR
   ingress {
     from_port   = 6379
     to_port     = 6379
     protocol    = "tcp"
     cidr_blocks = [local.cidr_block]
+    description = "Allow Redis access from VPC CIDR"
   }
 
   egress {
@@ -408,37 +462,47 @@ resource "aws_security_group" "memorydb_sg" {
   }
 }
 
+# Additional security group rule to allow ECS tasks to connect to MemoryDB
+resource "aws_security_group_rule" "ecs_to_memorydb" {
+  count                    = local.enable_redis ? 1 : 0
+  type                     = "egress"
+  from_port                = 6379
+  to_port                  = 6379
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.memorydb_sg[0].id
+  security_group_id        = module.ecs_fargate.security_group_id
+  description              = "Allow ECS tasks to connect to MemoryDB"
+}
+
 # Bastion host removed - no RDS to access
 
-module "api_gateway" {
-  source = "../modules/api_gateway"
+# API Gateway module disabled - routing directly to ALB
+# module "api_gateway" {
+#   source = "../modules/api_gateway"
+#
+#   name        = "${local.tenant_name}-api-gateway"
+#   environment = local.environment
+#   tenant_name = local.tenant_name
+#
+#   alb_dns_name = module.alb.alb_dns_name
+#   alb_zone_id  = module.alb.alb_zone_id
+#
+#   # VPC configuration for Lambda function
+#   vpc_id             = module.vpc.vpc_id
+#   subnet_ids         = module.vpc.private_subnet_ids
+#   security_group_ids = [module.alb.security_group_id]
+#
+#   stage_name     = "prod"
+#   enable_cors    = true
+#   enable_api_key = false
+#
+#   throttle_rate_limit  = 1000
+#   throttle_burst_limit = 2000
+#
+#   depends_on = [module.alb, module.ecs_fargate, module.vpc]
+# }
 
-  name        = "${local.tenant_name}-api-gateway"
-  environment = local.environment
-  tenant_name = local.tenant_name
-
-  alb_dns_name = module.alb.alb_dns_name
-  alb_zone_id  = module.alb.alb_zone_id
-
-  # VPC configuration for Lambda function
-  vpc_id             = module.vpc.vpc_id
-  subnet_ids         = module.vpc.private_subnet_ids
-  security_group_ids = [module.alb.security_group_id]
-
-  stage_name     = "prod"
-  enable_cors    = true
-  enable_api_key = false
-
-  throttle_rate_limit  = 1000
-  throttle_burst_limit = 2000
-
-  depends_on = [module.alb, module.ecs_fargate, module.vpc]
-}
-
-module "s3-terraform-remote-state" {
-  source      = "../modules/s3-terraform-remote-state"
-  bucket_name = local.tf_remote_state_bucket
-}
+# S3 bucket for Terraform state is managed by backend configuration in backend.tf
 
 module "s3-bucket" {
   source      = "../modules/s3"
@@ -449,16 +513,9 @@ module "s3-bucket" {
   }
 }
 
-module "ecr" {
-  source = "../modules/ecr"
-
-  repository_name = "ai-tutor-api"
-
-  tags = {
-    Environment = "${local.environment}"
-    Tenant      = "${local.tenant_name}"
-    Service     = "ai-tutor"
-  }
+# Use existing ECR repository instead of creating a new one
+data "aws_ecr_repository" "existing" {
+  name = "ai-tutor-api"
 }
 # Backend configuration removed - using local state for dev
 

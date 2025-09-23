@@ -15,6 +15,11 @@ resource "aws_ecs_service" "default" {
     type = var.deployment_controller_type
   }
 
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
+  }
+
   # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-networking.html
   network_configuration {
     subnets         = var.subnets
@@ -48,6 +53,12 @@ resource "aws_ecs_service" "default" {
 
   # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html#service_scheduler_replica
   scheduling_strategy = "REPLICA"
+
+  # Enable ECS Exec for debugging
+  enable_execute_command = true
+
+  # Propagate tags from service to tasks
+  propagate_tags = "SERVICE"
 
   lifecycle {
     # https://www.terraform.io/docs/providers/aws/r/ecs_service.html#ignoring-changes-to-desired-count
@@ -106,6 +117,9 @@ resource "aws_ecs_task_definition" "default" {
 
   # The ARN of the task execution role that the Amazon ECS container agent and the Docker daemon can assume.
   execution_role_arn = var.create_ecs_task_execution_role ? join("", aws_iam_role.default.*.arn) : var.ecs_task_execution_role_arn
+
+  # The ARN of the task role that containers in this task can assume.
+  task_role_arn = var.ecs_task_role_arn != "" ? var.ecs_task_role_arn : null
 
   # A list of container definitions in JSON format that describe the different containers that make up your task.
   # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions

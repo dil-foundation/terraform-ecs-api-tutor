@@ -26,7 +26,7 @@ variable "subdomain" {
 }
 
 variable "ssl_certificate_arn" {
-  description = "The certificate ARN for the provided domain. Be aware that for cloud front the certicate needs to be available in us-east-1."
+  description = "The certificate ARN for the provided domain. Be aware that for cloud front the certicate needs to be available in us-east-2."
   type        = string
   default     = ""
 }

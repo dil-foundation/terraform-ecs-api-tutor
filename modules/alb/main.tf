@@ -180,6 +180,14 @@ resource "aws_lb_target_group" "default" {
   # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/load-balancer-target-groups.html#target-group-attributes
   slow_start = var.slow_start
 
+  # Stickiness configuration for WebSocket connections
+  # This ensures WebSocket connections are routed to the same target
+  stickiness {
+    type            = "lb_cookie"
+    cookie_duration = 86400  # 24 hours
+    enabled         = true
+  }
+
   # Your Application Load Balancer periodically sends requests to its registered targets to test their status.
   # These tests are called health checks.
   # https://docs.aws.amazon.com/elasticloadbalancing/latest/application/target-group-health-checks.html

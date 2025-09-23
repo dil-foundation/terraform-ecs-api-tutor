@@ -1,11 +1,11 @@
 terraform {
   backend "s3" {
-    bucket = "dil-fnd-dev-terraform-state-1757934483"
+    bucket = "dil-prod-terraform-state"
     key    = "prod/terraform.tfstate"
-    region = "us-east-2"
+    region = "us-east-1"
 
     # Enable state locking with DynamoDB
-    dynamodb_table = "dil-fnd-dev-terraform-locks"
-    encrypt        = true
+    # dynamodb_table = "dil-prod-terraform-locks"
+    # encrypt        = true
   }
 }

@@ -3,10 +3,11 @@ output "cdn_url" {
   value       = module.cloudfront.cloudfront_dns_record
 }
 
-output "api_gateway_invoke_url" {
-  description = "API Gateway invoke URL"
-  value       = module.api_gateway.api_gateway_invoke_url
-}
+# API Gateway output removed - routing directly to ALB
+# output "api_gateway_invoke_url" {
+#   description = "API Gateway invoke URL"
+#   value       = module.api_gateway.api_gateway_invoke_url
+# }
 
 output "alb_dns_name" {
   description = "Application Load Balancer DNS name"
@@ -34,5 +35,5 @@ output "s3_bucket_name" {
 
 output "ecr_repository_url" {
   description = "ECR repository URL"
-  value       = module.ecr.repository_url
+  value       = data.aws_ecr_repository.existing.repository_url
 }
