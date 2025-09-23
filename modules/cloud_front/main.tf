@@ -224,6 +224,31 @@ resource "aws_cloudfront_distribution" "cdn" {
     }
   }
 
+  # Teacher Routes to Load Balancer
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/teacher/*"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+
+      forwarded_values {
+        query_string = true
+        headers      = ["Authorization", "Content-Type", "Accept", "Accept-Encoding", "Accept-Language", "Host", "Origin", "Referer"]
+        cookies {
+          forward = "all"
+        }
+      }
+
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
   # Text-to-Speech Service Route to Load Balancer
   dynamic "ordered_cache_behavior" {
     for_each = var.enable_backend ? [1] : []
