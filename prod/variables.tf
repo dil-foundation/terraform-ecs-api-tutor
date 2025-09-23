@@ -58,3 +58,15 @@ variable "container_image_tag" {
   type        = string
   default     = "latest"
 }
+
+variable "database_url" {
+  description = "Database URL for the db-mcp-server"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_mcp_server_tag" {
+  description = "Docker image tag for the db-mcp-server container"
+  type        = string
+  default     = "latest"
+}

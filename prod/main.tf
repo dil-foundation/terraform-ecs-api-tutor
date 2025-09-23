@@ -184,6 +184,88 @@ module "ecs_fargate" {
   }
 }
 
+# ECS Fargate service for db-mcp-server
+module "ecs_fargate_db_mcp" {
+  source           = "../modules/ecs_fargate"
+  name             = "${local.tenant_name}-db-mcp-server"
+  container_name   = local.db_mcp_container_name
+  container_port   = local.db_mcp_container_port
+  cluster          = aws_ecs_cluster.ecs-cluster.arn
+  subnets          = module.vpc.private_subnet_ids
+  target_group_arn = aws_lb_target_group.db_mcp.arn
+  vpc_id           = module.vpc.vpc_id
+
+  container_definitions = jsonencode([
+    {
+      name      = local.db_mcp_container_name
+      image     = "342834686411.dkr.ecr.us-east-2.amazonaws.com/db-mcp-server:${var.db_mcp_server_tag}"
+      essential = true
+      cpu       = 512
+      memory    = 1024
+      logConfiguration = {
+        logDriver = "awslogs"
+        options = {
+          awslogs-group         = module.cloud_watch.log_group_name,
+          awslogs-region        = "us-east-2",
+          awslogs-stream-prefix = "${local.tenant_name}-db-mcp"
+        }
+      }
+      portMappings = [
+        {
+          containerPort = 8001
+          protocol      = "tcp"
+        }
+      ]
+      environment = [
+        # Database Configuration
+        { name = "DATABASE_URL", value = var.database_url },
+        
+        # Application Environment
+        { name = "ENVIRONMENT", value = "production" },
+        { name = "MCP_HTTP_HOST", value = "0.0.0.0" },
+        { name = "MCP_HTTP_PORT", value = "8001" },
+        { name = "MCP_USER_IDENTITY", value = "navee" },
+
+        # Task definition version identifier to force updates
+        { name = "TASK_VERSION", value = "v1.0-db-mcp-20250923" }
+      ]
+    }
+  ])
+
+  desired_count                      = 2
+  deployment_maximum_percent         = 200
+  deployment_minimum_healthy_percent = 100
+  deployment_controller_type         = "ECS"
+  assign_public_ip                   = false
+  health_check_grace_period_seconds  = 300
+  platform_version                   = "LATEST"
+  source_cidr_blocks                 = ["0.0.0.0/0"]
+  cpu                                = 512
+  memory                             = 1024
+  requires_compatibilities           = ["FARGATE"]
+  iam_path                           = "/service_role/"
+  description                        = "This is ${local.tenant_name} db-mcp-server"
+  enabled                            = true
+
+  create_ecs_task_execution_role = false
+  ecs_task_execution_role_arn    = aws_iam_role.default.arn
+  ecs_task_role_arn              = aws_iam_role.task_role.arn
+
+  # Auto Scaling Configuration
+  enable_autoscaling    = true
+  min_capacity          = 1
+  max_capacity          = 5
+  cpu_target_value      = 70.0
+  memory_target_value   = 80.0
+  log_retention_in_days = 7
+
+  tags = {
+    Environment = "${local.environment}"
+    Tenant      = "${local.tenant_name}"
+    Service     = "db-mcp-server"
+  }
+}
+
 # ECS Task Execution Role (for pulling images, writing logs)
 resource "aws_iam_role" "default" {
   name               = "${local.tenant_name}-ecs-task-execution-for-ecs-fargate"
@@ -308,6 +390,10 @@ locals {
   container_name = "${local.tenant_name}-ai-tutor-container-v2"
   container_port = tonumber(module.alb.alb_target_group_port)
   #host_port = tonumber(module.alb.http_port)
+  
+  # db-mcp-server container configuration
+  db_mcp_container_name = "${local.tenant_name}-db-mcp-container"
+  db_mcp_container_port = 8001
 }
 
 resource "aws_ecs_cluster" "ecs-cluster" {
@@ -352,7 +438,7 @@ module "alb" {
   health_check_matcher             = "200-399"
   health_check_port                = "traffic-port"
   health_check_protocol            = "HTTP"
-  listener_rule_priority           = 1
+  listener_rule_priority           = 200
   listener_rule_condition_field    = "path-pattern"
   listener_rule_condition_values   = ["/*"]
   enabled                          = true
@@ -361,6 +447,106 @@ module "alb" {
     Tenant      = "${local.tenant_name}"
     Environment = "${local.environment}"
 
+  }
+}
+
+# Target Group for db-mcp-server
+resource "aws_lb_target_group" "db_mcp" {
+  name     = "${local.tenant_name}-db-mcp-tg"
+  port     = 8001
+  protocol = "HTTP"
+  vpc_id   = module.vpc.vpc_id
+  target_type = "ip"
+
+  health_check {
+    enabled             = true
+    healthy_threshold   = 2
+    unhealthy_threshold = 5
+    timeout             = 15
+    interval            = 30
+    path                = "/"
+    matcher             = "200-399"
+    port                = "traffic-port"
+    protocol            = "HTTP"
+  }
+
+  tags = {
+    Name        = "${local.tenant_name}-db-mcp-tg"
+    Environment = "${local.environment}"
+    Tenant      = "${local.tenant_name}"
+    Service     = "db-mcp-server"
+  }
+}
+
+# Listener Rule for /chat endpoints to route to db-mcp-server
+resource "aws_lb_listener_rule" "db_mcp_chat" {
+  listener_arn = module.alb.http_alb_listener_arn
+  priority     = 100
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.db_mcp.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/chat", "/chat/*"]
+    }
+  }
+
+  tags = {
+    Name        = "${local.tenant_name}-db-mcp-chat-rule"
+    Environment = "${local.environment}"
+    Tenant      = "${local.tenant_name}"
+    Service     = "db-mcp-server"
+  }
+}
+
+# Listener Rule for /mcp endpoints to route to db-mcp-server
+resource "aws_lb_listener_rule" "db_mcp_protocol" {
+  listener_arn = module.alb.http_alb_listener_arn
+  priority     = 101
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.db_mcp.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/mcp", "/mcp/*"]
+    }
+  }
+
+  tags = {
+    Name        = "${local.tenant_name}-db-mcp-protocol-rule"
+    Environment = "${local.environment}"
+    Tenant      = "${local.tenant_name}"
+    Service     = "db-mcp-server"
+  }
+}
+
+# Listener Rule for /sse endpoints to route to db-mcp-server
+resource "aws_lb_listener_rule" "db_mcp_sse" {
+  listener_arn = module.alb.http_alb_listener_arn
+  priority     = 102
+
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.db_mcp.arn
+  }
+
+  condition {
+    path_pattern {
+      values = ["/sse", "/sse/*"]
+    }
+  }
+
+  tags = {
+    Name        = "${local.tenant_name}-db-mcp-sse-rule"
+    Environment = "${local.environment}"
+    Tenant      = "${local.tenant_name}"
+    Service     = "db-mcp-server"
   }
 }
 
@@ -516,6 +702,11 @@ module "s3-bucket" {
 # Use existing ECR repository instead of creating a new one
 data "aws_ecr_repository" "existing" {
   name = "ai-tutor-api"
+}
+
+# Use existing ECR repository for db-mcp-server
+data "aws_ecr_repository" "db_mcp_server" {
+  name = "db-mcp-server"
 }
 # Backend configuration removed - using local state for dev
 

@@ -318,6 +318,81 @@ resource "aws_cloudfront_distribution" "cdn" {
     }
   }
 
+  # Chat/MCP Routes to Load Balancer (for db-mcp-server)
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/chat*"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+
+      forwarded_values {
+        query_string = true
+        headers      = ["Authorization", "Content-Type", "Accept", "Accept-Encoding", "Accept-Language", "Host", "Origin", "Referer", "User-Agent", "X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Port"]
+        cookies {
+          forward = "all"
+        }
+      }
+
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
+  # MCP Protocol Routes to Load Balancer (for db-mcp-server)
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/mcp*"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+
+      forwarded_values {
+        query_string = true
+        headers      = ["Authorization", "Content-Type", "Accept", "Accept-Encoding", "Accept-Language", "Host", "Origin", "Referer", "User-Agent", "X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Port"]
+        cookies {
+          forward = "all"
+        }
+      }
+
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
+  # Server-Sent Events Routes to Load Balancer (for db-mcp-server)
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/sse*"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+
+      forwarded_values {
+        query_string = true
+        headers      = ["Authorization", "Content-Type", "Accept", "Accept-Encoding", "Accept-Language", "Host", "Origin", "Referer", "User-Agent", "X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Port", "Cache-Control"]
+        cookies {
+          forward = "all"
+        }
+      }
+
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
 
   price_class = var.price_class
   tags = merge(
