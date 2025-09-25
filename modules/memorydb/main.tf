@@ -54,7 +54,8 @@ resource "aws_memorydb_user" "memorydb_user" {
   access_string = "on ~* &* +@all"
 
   authentication_mode {
-    type = "iam"
+    type      = "password"
+    passwords = ["Redis123!"]
   }
 
   tags = var.tags
