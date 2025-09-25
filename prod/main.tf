@@ -127,11 +127,11 @@ module "ecs_fargate" {
         { name = "WP_API_USERNAME", value = local.wp_api_username },
         { name = "WP_API_APPLICATION_PASSWORD", value = local.wp_api_application_password },
 
-        # Redis Configuration (AWS MemoryDB)
-        { name = "REDIS_URL", value = local.enable_redis ? "redis://default-user@${module.memorydb[0].cluster_endpoint}:6379" : "redis://localhost:6379" },
+        # Redis Configuration (AWS MemoryDB with IAM authentication)
+        { name = "REDIS_URL", value = local.enable_redis ? "redis://${module.memorydb[0].cluster_endpoint}:6379" : "redis://localhost:6379" },
         { name = "REDIS_HOST", value = local.enable_redis ? module.memorydb[0].cluster_endpoint : "localhost" },
         { name = "REDIS_PORT", value = "6379" },
-        { name = "REDIS_USERNAME", value = local.enable_redis ? "default-user" : "" },
+        { name = "REDIS_AUTH_MODE", value = local.enable_redis ? "iam" : "" },
 
         # Application Environment
         { name = "ENVIRONMENT", value = "production" },
@@ -302,6 +302,37 @@ resource "aws_iam_role_policy_attachment" "ecs_task_execution" {
 
 data "aws_iam_policy" "ecs_task_execution" {
   arn = "arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy"
+}
+
+# IAM policy for MemoryDB access
+resource "aws_iam_policy" "memorydb_access" {
+  count = local.enable_redis ? 1 : 0
+  name  = "${local.tenant_name}-memorydb-access"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "memorydb:Connect",
+          "memorydb:DescribeClusters",
+          "memorydb:DescribeUsers"
+        ]
+        Resource = [
+          module.memorydb[0].arn,
+          "${module.memorydb[0].arn}/*"
+        ]
+      }
+    ]
+  })
+}
+
+# Attach MemoryDB policy to ECS task role
+resource "aws_iam_role_policy_attachment" "memorydb_access" {
+  count      = local.enable_redis ? 1 : 0
+  role       = aws_iam_role.task_role.name
+  policy_arn = aws_iam_policy.memorydb_access[0].arn
 }
 
 # AWS Secrets Manager for Google Credentials
