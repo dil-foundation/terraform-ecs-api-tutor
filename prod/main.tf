@@ -92,7 +92,7 @@ module "ecs_fargate" {
   container_definitions = jsonencode([
     {
       name      = local.container_name
-      image     = "342834686411.dkr.ecr.us-east-2.amazonaws.com/ai-tutor-api:v4-fixed"
+      image     = "342834686411.dkr.ecr.us-east-2.amazonaws.com/ai-tutor-api:${var.ai-tutor_image_tag}"
       essential = true
       cpu       = 2048
       memory    = 16384
