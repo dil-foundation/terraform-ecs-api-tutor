@@ -55,7 +55,7 @@ resource "aws_memorydb_user" "memorydb_user" {
 
   authentication_mode {
     type      = "password"
-    passwords = ["Redis123!"]
+    passwords = ["Redis123!Redis123!Redis123!"]
   }
 
   tags = var.tags
