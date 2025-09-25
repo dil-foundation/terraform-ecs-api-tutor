@@ -53,6 +53,10 @@ resource "aws_memorydb_user" "memorydb_user" {
   user_name     = "default-user"
   access_string = "on ~* &* +@all"
 
+  authentication_mode {
+    type = "no-password"
+  }
+
   tags = var.tags
 }
 
