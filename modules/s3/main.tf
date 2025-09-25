@@ -3,9 +3,9 @@ resource "aws_cloudfront_origin_access_identity" "s3_origin_access_identity" {
 }
 
 resource "aws_s3_bucket" "s3_bucket" {
-  bucket = var.bucket_name
+  bucket        = var.bucket_name
   force_destroy = true
-  policy = <<EOF
+  policy        = <<EOF
 {
   "Version":"2012-10-17",
   "Statement":[
@@ -28,7 +28,7 @@ EOF
 
   # NOTE: Removing ownership_controls to stay compatible with current provider version
   versioning {
-      enabled = false
+    enabled = false
   }
   tags = var.tags
 }

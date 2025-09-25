@@ -25,9 +25,9 @@ resource "aws_memorydb_parameter_group" "memorydb_parameter_group" {
 resource "aws_memorydb_cluster" "memorydb" {
   count = var.enabled ? 1 : 0
 
-  name                        = var.name
+  name                       = var.name
   acl_name                   = aws_memorydb_acl.memorydb_acl[0].name
-  description                 = var.description
+  description                = var.description
   node_type                  = var.node_type
   port                       = var.port
   parameter_group_name       = aws_memorydb_parameter_group.memorydb_parameter_group[0].name
@@ -38,19 +38,33 @@ resource "aws_memorydb_cluster" "memorydb" {
   engine_version             = var.engine_version
   maintenance_window         = var.maintenance_window
   snapshot_retention_limit   = var.snapshot_retention_limit
-  snapshot_window           = var.snapshot_window
-  snapshot_name             = var.snapshot_name
-  final_snapshot_name       = var.final_snapshot_name
+  snapshot_window            = var.snapshot_window
+  snapshot_name              = var.snapshot_name
+  final_snapshot_name        = var.final_snapshot_name
   auto_minor_version_upgrade = var.auto_minor_version_upgrade
-  kms_key_arn               = var.kms_key_arn
-  tls_enabled               = var.tls_enabled
+  kms_key_arn                = var.kms_key_arn
+  tls_enabled                = var.tls_enabled
+
+  tags = var.tags
+}
+
+resource "aws_memorydb_user" "memorydb_user" {
+  count         = var.enabled ? 1 : 0
+  user_name     = "default-user"
+  access_string = "on ~* &* +@all"
+
+  authentication_mode {
+    type      = "password"
+    passwords = ["RedisSecurePassword2024!"]
+  }
 
   tags = var.tags
 }
 
 resource "aws_memorydb_acl" "memorydb_acl" {
-  count = var.enabled ? 1 : 0
-  name  = "${var.name}-acl"
+  count      = var.enabled ? 1 : 0
+  name       = "${var.name}-acl"
+  user_names = [aws_memorydb_user.memorydb_user[0].user_name]
 
   tags = var.tags
 }

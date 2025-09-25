@@ -140,6 +140,12 @@ variable "ecs_task_execution_role_arn" {
   description = "The ARN of the ECS Task Execution IAM Role."
 }
 
+variable "ecs_task_role_arn" {
+  default     = ""
+  type        = string
+  description = "The ARN of the ECS Task IAM Role."
+}
+
 # Auto Scaling Variables
 variable "enable_autoscaling" {
   default     = false

@@ -2,17 +2,22 @@
 # ECS Service
 # https://www.terraform.io/docs/providers/aws/r/ecs_service.html
 resource "aws_ecs_service" "default" {
-  count = var.enabled ? 1 : 0
-  name = var.name
-  task_definition = aws_ecs_task_definition.default[0].arn
-  cluster = var.cluster
-  desired_count = var.desired_count
-  deployment_maximum_percent = var.deployment_maximum_percent
+  count                              = var.enabled ? 1 : 0
+  name                               = var.name
+  task_definition                    = aws_ecs_task_definition.default[0].arn
+  cluster                            = var.cluster
+  desired_count                      = var.desired_count
+  deployment_maximum_percent         = var.deployment_maximum_percent
   deployment_minimum_healthy_percent = var.deployment_minimum_healthy_percent
 
   deployment_controller {
     # The deployment controller type to use. Valid values: CODE_DEPLOY, ECS.
     type = var.deployment_controller_type
+  }
+
+  deployment_circuit_breaker {
+    enable   = true
+    rollback = true
   }
 
   # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task-networking.html
@@ -48,6 +53,12 @@ resource "aws_ecs_service" "default" {
 
   # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/ecs_services.html#service_scheduler_replica
   scheduling_strategy = "REPLICA"
+
+  # Enable ECS Exec for debugging
+  enable_execute_command = true
+
+  # Propagate tags from service to tasks
+  propagate_tags = "SERVICE"
 
   lifecycle {
     # https://www.terraform.io/docs/providers/aws/r/ecs_service.html#ignoring-changes-to-desired-count
@@ -106,6 +117,9 @@ resource "aws_ecs_task_definition" "default" {
 
   # The ARN of the task execution role that the Amazon ECS container agent and the Docker daemon can assume.
   execution_role_arn = var.create_ecs_task_execution_role ? join("", aws_iam_role.default.*.arn) : var.ecs_task_execution_role_arn
+
+  # The ARN of the task role that containers in this task can assume.
+  task_role_arn = var.ecs_task_role_arn != "" ? var.ecs_task_role_arn : null
 
   # A list of container definitions in JSON format that describe the different containers that make up your task.
   # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#container_definitions
@@ -185,7 +199,7 @@ data "aws_iam_policy" "ecs_task_execution" {
 # Application Auto Scaling Target
 resource "aws_appautoscaling_target" "ecs_target" {
   count = var.enabled && var.enable_autoscaling ? 1 : 0
-  
+
   max_capacity       = var.max_capacity
   min_capacity       = var.min_capacity
   resource_id        = "service/${var.cluster}/${aws_ecs_service.default[0].name}"
@@ -196,7 +210,7 @@ resource "aws_appautoscaling_target" "ecs_target" {
 # Application Auto Scaling Policy - CPU
 resource "aws_appautoscaling_policy" "ecs_policy_cpu" {
   count = var.enabled && var.enable_autoscaling ? 1 : 0
-  
+
   name               = "${var.name}-cpu-scaling"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs_target[0].resource_id
@@ -214,7 +228,7 @@ resource "aws_appautoscaling_policy" "ecs_policy_cpu" {
 # Application Auto Scaling Policy - Memory
 resource "aws_appautoscaling_policy" "ecs_policy_memory" {
   count = var.enabled && var.enable_autoscaling ? 1 : 0
-  
+
   name               = "${var.name}-memory-scaling"
   policy_type        = "TargetTrackingScaling"
   resource_id        = aws_appautoscaling_target.ecs_target[0].resource_id
@@ -232,7 +246,7 @@ resource "aws_appautoscaling_policy" "ecs_policy_memory" {
 # CloudWatch Log Group for ECS Service
 resource "aws_cloudwatch_log_group" "ecs_service" {
   count = var.enabled && var.enable_autoscaling ? 1 : 0
-  
+
   name              = "/ecs/${var.name}"
   retention_in_days = var.log_retention_in_days
 

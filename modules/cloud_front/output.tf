@@ -14,8 +14,8 @@ output "cloudfront_distribution" {
   description = "Cloudfront distribution (id, arn)"
 
   value = {
-    id  = aws_cloudfront_distribution.cdn.id
-    arn = aws_cloudfront_distribution.cdn.arn
+    id          = aws_cloudfront_distribution.cdn.id
+    arn         = aws_cloudfront_distribution.cdn.arn
     domain_name = aws_cloudfront_distribution.cdn.domain_name
   }
 }

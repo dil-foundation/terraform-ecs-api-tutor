@@ -23,7 +23,7 @@ resource "aws_cloudfront_distribution" "cdn" {
       origin_access_identity = var.origin_access_identity
     }
   }
-  
+
   # back (optional)
   dynamic "origin" {
     for_each = var.enable_backend ? [1] : []
@@ -39,21 +39,7 @@ resource "aws_cloudfront_distribution" "cdn" {
     }
   }
 
-  # API Gateway origin (optional)
-  dynamic "origin" {
-    for_each = var.enable_api_gateway && var.api_gateway_invoke_url != "" ? [1] : []
-    content {
-      origin_id   = "api-gateway"
-      domain_name = var.api_gateway_domain_name
-      origin_path = "/${split("/", var.api_gateway_invoke_url)[length(split("/", var.api_gateway_invoke_url)) - 1]}"
-      custom_origin_config {
-        http_port              = 443
-        https_port             = 443
-        origin_protocol_policy = "https-only"
-        origin_ssl_protocols   = ["TLSv1.2"]
-      }
-    }
-  }
+  # API Gateway origin removed - all traffic now goes directly to ALB
 
   restrictions {
     geo_restriction {
@@ -65,6 +51,7 @@ resource "aws_cloudfront_distribution" "cdn" {
   enabled             = true
   is_ipv6_enabled     = true
   default_root_object = var.default_root_object
+  comment             = "${var.environment} environment - ${var.name}"
 
   default_cache_behavior {
     allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
@@ -86,47 +73,20 @@ resource "aws_cloudfront_distribution" "cdn" {
     max_ttl     = var.max_ttl
   }
 
-  # API Routes to API Gateway (higher precedence)
-  dynamic "ordered_cache_behavior" {
-    for_each = var.enable_api_gateway && var.api_gateway_invoke_url != "" ? [1] : []
-    content {
-      path_pattern     = "/api/*"
-      allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
-      cached_methods   = ["GET", "HEAD"]
-      target_origin_id = "api-gateway"
+  # All API routes now go directly to ALB (Load Balancer) for better performance
+  # This includes all REST endpoints and WebSocket connections
 
-      forwarded_values {
-        query_string = true
-        headers      = ["Authorization", "Content-Type", "Accept"]
-        cookies {
-          forward = "none"
-        }
-      }
-
-      min_ttl                = 0
-      default_ttl            = 0
-      max_ttl                = 0
-      compress               = false
-      viewer_protocol_policy = "redirect-to-https"
-    }
-  }
-
-  # All API routes now go through API Gateway (no ALB fallback)
-
-  # All API routes now go through API Gateway (CloudFront → API Gateway → Lambda → ECS → RDS)
-  # Only admin panel and health check routes go directly to ALB for management purposes
-
-  # Health Check Route to Backend (for direct health monitoring)
+  # OpenAPI JSON Route to Load Balancer (highest precedence - must come before /api/*)
   dynamic "ordered_cache_behavior" {
     for_each = var.enable_backend ? [1] : []
     content {
-      path_pattern     = "/health"
+      path_pattern     = "/openapi.json"
       allowed_methods  = ["GET", "HEAD", "OPTIONS"]
       cached_methods   = ["GET", "HEAD"]
       target_origin_id = data.aws_lb.aws_alb[0].name
       forwarded_values {
         query_string = true
-        headers      = ["Accept", "Accept-Charset", "Accept-Datetime","Accept-Encoding","Accept-Language","Authorization","Host","Origin","Referer"]
+        headers      = ["Accept", "Accept-Charset", "Accept-Datetime", "Accept-Encoding", "Accept-Language", "Authorization", "Host", "Origin", "Referer"]
         cookies {
           forward = "all"
         }
@@ -138,6 +98,326 @@ resource "aws_cloudfront_distribution" "cdn" {
       viewer_protocol_policy = "redirect-to-https"
     }
   }
+
+  # Main API Routes to Load Balancer (second precedence)
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/api/*"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+
+      forwarded_values {
+        query_string = true
+        headers      = ["Authorization", "Content-Type", "Accept", "Accept-Encoding", "Accept-Language", "Host", "Origin", "Referer", "User-Agent", "X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Port"]
+        cookies {
+          forward = "all"
+        }
+      }
+
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
+  # WebSocket Routes to Load Balancer (for real-time features)
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/ws/*"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+
+      forwarded_values {
+        query_string = true
+        headers      = ["Authorization", "Content-Type", "Accept", "Host", "Origin", "Sec-WebSocket-Key", "Sec-WebSocket-Version", "Sec-WebSocket-Protocol"]
+        cookies {
+          forward = "all"
+        }
+      }
+
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
+  # User Management Routes to Load Balancer
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/user/*"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+
+      forwarded_values {
+        query_string = true
+        headers      = ["Authorization", "Content-Type", "Accept", "Accept-Encoding", "Accept-Language", "Host", "Origin", "Referer"]
+        cookies {
+          forward = "all"
+        }
+      }
+
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
+  # Admin Dashboard Routes to Load Balancer
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/admin/*"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+
+      forwarded_values {
+        query_string = true
+        headers      = ["Authorization", "Content-Type", "Accept", "Accept-Encoding", "Accept-Language", "Host", "Origin", "Referer"]
+        cookies {
+          forward = "all"
+        }
+      }
+
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
+  # Teacher Dashboard Routes to Load Balancer
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/dashboard/*"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+
+      forwarded_values {
+        query_string = true
+        headers      = ["Authorization", "Content-Type", "Accept", "Accept-Encoding", "Accept-Language", "Host", "Origin", "Referer"]
+        cookies {
+          forward = "all"
+        }
+      }
+
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
+  # Teacher Routes to Load Balancer
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/teacher/*"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+
+      forwarded_values {
+        query_string = true
+        headers      = ["Authorization", "Content-Type", "Accept", "Accept-Encoding", "Accept-Language", "Host", "Origin", "Referer"]
+        cookies {
+          forward = "all"
+        }
+      }
+
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
+  # Text-to-Speech Service Route to Load Balancer
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/tts"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+
+      forwarded_values {
+        query_string = true
+        headers      = ["Authorization", "Content-Type", "Accept", "Accept-Encoding", "Accept-Language", "Host", "Origin", "Referer"]
+        cookies {
+          forward = "all"
+        }
+      }
+
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
+  # Health Check Routes to Load Balancer (for monitoring)
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/health*"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+      forwarded_values {
+        query_string = true
+        headers      = ["Accept", "Accept-Charset", "Accept-Datetime", "Accept-Encoding", "Accept-Language", "Authorization", "Host", "Origin", "Referer"]
+        cookies {
+          forward = "all"
+        }
+      }
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
+  # Documentation Routes to Load Balancer (for API documentation)
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/docs*"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+      forwarded_values {
+        query_string = true
+        headers      = ["Accept", "Accept-Charset", "Accept-Datetime", "Accept-Encoding", "Accept-Language", "Authorization", "Host", "Origin", "Referer"]
+        cookies {
+          forward = "all"
+        }
+      }
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
+  # ReDoc Documentation Route to Load Balancer
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/redoc*"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+      forwarded_values {
+        query_string = true
+        headers      = ["Accept", "Accept-Charset", "Accept-Datetime", "Accept-Encoding", "Accept-Language", "Authorization", "Host", "Origin", "Referer"]
+        cookies {
+          forward = "all"
+        }
+      }
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
+  # Chat/MCP Routes to Load Balancer (for db-mcp-server)
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/chat*"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+
+      forwarded_values {
+        query_string = true
+        headers      = ["Authorization", "Content-Type", "Accept", "Accept-Encoding", "Accept-Language", "Host", "Origin", "Referer", "User-Agent", "X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Port"]
+        cookies {
+          forward = "all"
+        }
+      }
+
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
+  # MCP Protocol Routes to Load Balancer (for db-mcp-server)
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/mcp*"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+
+      forwarded_values {
+        query_string = true
+        headers      = ["Authorization", "Content-Type", "Accept", "Accept-Encoding", "Accept-Language", "Host", "Origin", "Referer", "User-Agent", "X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Port"]
+        cookies {
+          forward = "all"
+        }
+      }
+
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
+  # Server-Sent Events Routes to Load Balancer (for db-mcp-server)
+  dynamic "ordered_cache_behavior" {
+    for_each = var.enable_backend ? [1] : []
+    content {
+      path_pattern     = "/sse*"
+      allowed_methods  = ["GET", "HEAD", "OPTIONS", "PUT", "POST", "PATCH", "DELETE"]
+      cached_methods   = ["GET", "HEAD"]
+      target_origin_id = data.aws_lb.aws_alb[0].name
+
+      forwarded_values {
+        query_string = true
+        headers      = ["Authorization", "Content-Type", "Accept", "Accept-Encoding", "Accept-Language", "Host", "Origin", "Referer", "User-Agent", "X-Forwarded-For", "X-Forwarded-Proto", "X-Forwarded-Port", "Cache-Control"]
+        cookies {
+          forward = "all"
+        }
+      }
+
+      min_ttl                = 0
+      default_ttl            = 0
+      max_ttl                = 0
+      compress               = false
+      viewer_protocol_policy = "redirect-to-https"
+    }
+  }
+
 
   price_class = var.price_class
   tags = merge(

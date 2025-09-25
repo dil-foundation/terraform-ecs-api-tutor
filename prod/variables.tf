@@ -53,8 +53,20 @@ variable "google_credentials_json" {
   sensitive   = true
 }
 
-variable "container_image_tag" {
+variable "ai-tutor_image_tag" {
   description = "Docker image tag for the AI Tutor API container"
   type        = string
-  default     = "0.0.11"
+  default     = "latest"
+}
+
+variable "database_url" {
+  description = "Database URL for the db-mcp-server"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_mcp_server_tag" {
+  description = "Docker image tag for the db-mcp-server container"
+  type        = string
+  default     = "latest"
 }
