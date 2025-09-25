@@ -53,7 +53,7 @@ variable "google_credentials_json" {
   sensitive   = true
 }
 
-variable "container_image_tag" {
+variable "ai-tutor_image_tag" {
   description = "Docker image tag for the AI Tutor API container"
   type        = string
   default     = "latest"
