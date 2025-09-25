@@ -48,9 +48,18 @@ resource "aws_memorydb_cluster" "memorydb" {
   tags = var.tags
 }
 
+resource "aws_memorydb_user" "memorydb_user" {
+  count         = var.enabled ? 1 : 0
+  user_name     = "default-user"
+  access_string = "on ~* &* +@all"
+
+  tags = var.tags
+}
+
 resource "aws_memorydb_acl" "memorydb_acl" {
-  count = var.enabled ? 1 : 0
-  name  = "${var.name}-acl"
+  count      = var.enabled ? 1 : 0
+  name       = "${var.name}-acl"
+  user_names = [aws_memorydb_user.memorydb_user[0].user_name]
 
   tags = var.tags
 }
