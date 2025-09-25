@@ -79,6 +79,6 @@ jobs:
           TF_VAR_google_credentials_json: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
           TF_VAR_wp_api_application_password: ${{ secrets.WP_API_APPLICATION_PASSWORD }}
           TF_VAR_database_url: ${{ secrets.DATABASE_URL }}
-          TF_VAR_ai-tutor_image_tag: latest
-          TF_VAR_db_mcp_server_tag: latest
+          TF_VAR_ai-tutor_image_tag: "latest"
+          TF_VAR_db_mcp_server_tag: "latest"
           TF_CLI_ARGS: "-lock-timeout=300s"
