@@ -128,8 +128,10 @@ module "ecs_fargate" {
         { name = "WP_API_APPLICATION_PASSWORD", value = local.wp_api_application_password },
 
         # Redis Configuration (AWS MemoryDB)
+        { name = "REDIS_URL", value = local.enable_redis ? "redis://default-user@${module.memorydb[0].cluster_endpoint}:6379" : "redis://localhost:6379" },
         { name = "REDIS_HOST", value = local.enable_redis ? module.memorydb[0].cluster_endpoint : "localhost" },
         { name = "REDIS_PORT", value = "6379" },
+        { name = "REDIS_USERNAME", value = local.enable_redis ? "default-user" : "" },
 
         # Application Environment
         { name = "ENVIRONMENT", value = "development" },
@@ -384,11 +386,22 @@ resource "aws_security_group" "memorydb_sg" {
   description = "Security group for MemoryDB"
   vpc_id      = module.vpc.vpc_id
 
+  # Allow access from ECS tasks security group
+  ingress {
+    from_port       = 6379
+    to_port         = 6379
+    protocol        = "tcp"
+    security_groups = [module.ecs_fargate.security_group_id]
+    description     = "Allow Redis access from ECS tasks"
+  }
+
+  # Fallback rule - allow access from VPC CIDR
   ingress {
     from_port   = 6379
     to_port     = 6379
     protocol    = "tcp"
     cidr_blocks = [local.cidr_block]
+    description = "Allow Redis access from VPC CIDR"
   }
 
   egress {
@@ -403,6 +416,19 @@ resource "aws_security_group" "memorydb_sg" {
     Environment = "${local.environment}"
     Tenant      = "${local.tenant_name}"
   }
+}
+
+# Additional security group rule to allow ECS tasks to connect to MemoryDB
+resource "aws_security_group_rule" "ecs_to_memorydb" {
+  count = local.enable_redis ? 1 : 0
+
+  type                     = "egress"
+  from_port                = 6379
+  to_port                  = 6379
+  protocol                 = "tcp"
+  source_security_group_id = aws_security_group.memorydb_sg[0].id
+  security_group_id        = module.ecs_fargate.security_group_id
+  description              = "Allow ECS tasks to connect to MemoryDB"
 }
 
 # Bastion host removed - no RDS to access
