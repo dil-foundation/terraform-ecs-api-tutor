@@ -128,11 +128,11 @@ module "ecs_fargate" {
         { name = "WP_API_APPLICATION_PASSWORD", value = local.wp_api_application_password },
 
         # Redis Configuration (AWS MemoryDB with password authentication)
-        { name = "REDIS_URL", value = local.enable_redis ? "redis://default-user:Redis123!@${module.memorydb[0].cluster_endpoint}:6379" : "redis://localhost:6379" },
+        { name = "REDIS_URL", value = local.enable_redis ? "redis://default-user:Redis123!Redis123!Redis123!@${module.memorydb[0].cluster_endpoint}:6379" : "redis://localhost:6379" },
         { name = "REDIS_HOST", value = local.enable_redis ? module.memorydb[0].cluster_endpoint : "localhost" },
         { name = "REDIS_PORT", value = "6379" },
         { name = "REDIS_USERNAME", value = local.enable_redis ? "default-user" : "" },
-        { name = "REDIS_PASSWORD", value = local.enable_redis ? "Redis123!" : "" },
+        { name = "REDIS_PASSWORD", value = local.enable_redis ? "Redis123!Redis123!Redis123!" : "" },
 
         # Application Environment
         { name = "ENVIRONMENT", value = "production" },
