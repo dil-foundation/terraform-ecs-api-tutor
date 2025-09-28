@@ -38,7 +38,7 @@ jobs:
             
       - name: Terraform Init
         working-directory: dev
-        run: terraform init 
+        run: terraform init -reconfigure 
 
       # - name: Terraform fmt check
       #  working-directory: prod
