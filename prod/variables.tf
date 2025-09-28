@@ -70,3 +70,9 @@ variable "db_mcp_server_tag" {
   type        = string
   default     = "latest"
 }
+
+variable "ssl_certificate_arn" {
+  description = "SSL certificate ARN for CloudFront distribution (must be in us-east-1 region)"
+  type        = string
+  default     = "arn:aws:acm:us-east-1:342834686411:certificate/e687717b-da1f-431a-94eb-76f6a5e21ea4"
+}

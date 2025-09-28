@@ -26,7 +26,7 @@ variable "subdomain" {
 }
 
 variable "ssl_certificate_arn" {
-  description = "The certificate ARN for the provided domain. Be aware that for cloud front the certicate needs to be available in us-east-2."
+  description = "The ARN of the SSL certificate for the distribution. Required when aliases are specified. Must be in us-east-1 region for CloudFront."
   type        = string
   default     = ""
 }
@@ -172,4 +172,11 @@ variable "enable_api_gateway" {
   type        = bool
   default     = false
 }
+
+variable "aliases" {
+  description = "Extra CNAMEs (alternate domain names), if any, for this distribution."
+  type        = list(string)
+  default     = []
+}
+
 
