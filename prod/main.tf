@@ -51,6 +51,10 @@ module "cloudfront" {
   api_gateway_domain_name = ""
   api_gateway_invoke_url  = ""
 
+  # Domain names for production environment only
+  aliases = local.environment == "prod" ? ["learn.dil.org", "www.learn.dil.org"] : []
+  ssl_certificate_arn = local.environment == "prod" ? var.ssl_certificate_arn : ""
+
   min_ttl     = 0
   default_ttl = 0
   max_ttl     = 0

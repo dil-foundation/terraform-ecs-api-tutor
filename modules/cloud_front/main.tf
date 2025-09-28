@@ -52,6 +52,9 @@ resource "aws_cloudfront_distribution" "cdn" {
   is_ipv6_enabled     = true
   default_root_object = var.default_root_object
   comment             = "${var.environment} environment - ${var.name}"
+  
+  # Add aliases (domain names) if provided
+  aliases = var.aliases
 
   default_cache_behavior {
     allowed_methods  = ["DELETE", "GET", "HEAD", "OPTIONS", "PATCH", "POST", "PUT"]
@@ -434,8 +437,8 @@ resource "aws_cloudfront_distribution" "cdn" {
   )
 
   viewer_certificate {
-    cloudfront_default_certificate = var.enable_route53_record ? false : true
-    acm_certificate_arn            = var.enable_route53_record ? var.ssl_certificate_arn : ""
+    cloudfront_default_certificate = length(var.aliases) > 0 ? false : (var.enable_route53_record ? false : true)
+    acm_certificate_arn            = length(var.aliases) > 0 ? var.ssl_certificate_arn : (var.enable_route53_record ? var.ssl_certificate_arn : "")
     ssl_support_method             = "sni-only"
     minimum_protocol_version       = var.ssl_minimum_protocol_version
   }

@@ -173,3 +173,15 @@ variable "enable_api_gateway" {
   default     = false
 }
 
+variable "aliases" {
+  description = "Extra CNAMEs (alternate domain names), if any, for this distribution."
+  type        = list(string)
+  default     = []
+}
+
+variable "ssl_certificate_arn" {
+  description = "The ARN of the SSL certificate for the distribution. Required when aliases are specified."
+  type        = string
+  default     = ""
+}
+
