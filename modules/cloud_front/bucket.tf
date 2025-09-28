@@ -37,18 +37,27 @@ resource "aws_s3_bucket" "web" {
     },
     var.tags,
   )
+}
 
-  versioning {
-    enabled = var.bucket_versioning
+# Use the new aws_s3_bucket_versioning resource instead of deprecated versioning block
+resource "aws_s3_bucket_versioning" "web" {
+  bucket = aws_s3_bucket.web.id
+  versioning_configuration {
+    status = var.bucket_versioning ? "Enabled" : "Suspended"
   }
+}
 
-  lifecycle_rule {
-    id      = "expire-old-versions"
-    prefix  = "*"
-    enabled = var.bucket_versioning
+# Use the new aws_s3_bucket_lifecycle_configuration resource instead of deprecated lifecycle_rule block
+resource "aws_s3_bucket_lifecycle_configuration" "web" {
+  count  = var.bucket_versioning ? 1 : 0
+  bucket = aws_s3_bucket.web.id
+
+  rule {
+    id     = "expire-old-versions"
+    status = "Enabled"
 
     noncurrent_version_expiration {
-      days = 7
+      noncurrent_days = 7
     }
   }
 }

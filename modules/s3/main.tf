@@ -26,9 +26,13 @@ EOF
     error_document = "404.html"
   }
 
-  # NOTE: Removing ownership_controls to stay compatible with current provider version
-  versioning {
-    enabled = false
-  }
   tags = var.tags
+}
+
+# Use the new aws_s3_bucket_versioning resource instead of deprecated versioning block
+resource "aws_s3_bucket_versioning" "s3_bucket" {
+  bucket = aws_s3_bucket.s3_bucket.id
+  versioning_configuration {
+    status = "Suspended"
+  }
 }
