@@ -1,8 +1,8 @@
 locals {
-  tenant_name            = "dil-dev-v2"
+  tenant_name            = "dil-org-dev-v2"
   environment            = "dev"
   cidr_block             = "11.0.0.0/16"
-  tf_remote_state_bucket = "dil-prod-terraform-state"
+  tf_remote_state_bucket = "dil-org-dev-terraform-state"
 
   # Cost saving flags
   enable_rds     = false # Set to false - using MemoryDB instead
