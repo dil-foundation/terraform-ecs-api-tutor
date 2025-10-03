@@ -128,10 +128,10 @@ module "ecs_fargate" {
         { name = "WP_API_APPLICATION_PASSWORD", value = local.wp_api_application_password },
 
         # Redis Configuration (AWS MemoryDB with password authentication and TLS)
-        { name = "REDIS_URL", value = local.enable_redis ? "rediss://default-user:RedisSecurePassword2024!@${module.memorydb[0].cluster_endpoint}:6379" : "redis://localhost:6379" },
+        { name = "REDIS_URL", value = local.enable_redis ? "rediss://dev-user:RedisSecurePassword2024!@${module.memorydb[0].cluster_endpoint}:6379" : "redis://localhost:6379" },
         { name = "REDIS_HOST", value = local.enable_redis ? module.memorydb[0].cluster_endpoint : "localhost" },
         { name = "REDIS_PORT", value = "6379" },
-        { name = "REDIS_USERNAME", value = local.enable_redis ? "default-user" : "" },
+        { name = "REDIS_USERNAME", value = local.enable_redis ? "dev-user" : "" },
         { name = "REDIS_PASSWORD", value = local.enable_redis ? "RedisSecurePassword2024!" : "" },
         { name = "REDIS_USE_TLS", value = local.enable_redis ? "true" : "false" },
 
@@ -607,6 +607,7 @@ module "memorydb" {
   engine_version         = "7.0"
   num_shards             = 1
   num_replicas_per_shard = 1
+  user_name              = "dev-user"
 
   tags = {
     Environment = "${local.environment}"

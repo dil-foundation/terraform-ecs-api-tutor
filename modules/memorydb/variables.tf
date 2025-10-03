@@ -124,6 +124,12 @@ variable "tls_enabled" {
   default     = true
 }
 
+variable "user_name" {
+  description = "Name of the MemoryDB user to create"
+  type        = string
+  default     = "default-user"
+}
+
 variable "tags" {
   description = "Tags to apply to the MemoryDB cluster"
   type        = map(string)

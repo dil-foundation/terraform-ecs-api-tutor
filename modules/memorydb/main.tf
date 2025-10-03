@@ -48,10 +48,10 @@ resource "aws_memorydb_cluster" "memorydb" {
   tags = var.tags
 }
 
-# Always create the MemoryDB user - this is simpler and more reliable
+# Create MemoryDB user - use a more robust approach
 resource "aws_memorydb_user" "memorydb_user" {
   count         = var.enabled ? 1 : 0
-  user_name     = "default-user"
+  user_name     = var.user_name
   access_string = "on ~* &* +@all"
 
   authentication_mode {
@@ -65,7 +65,7 @@ resource "aws_memorydb_user" "memorydb_user" {
 resource "aws_memorydb_acl" "memorydb_acl" {
   count      = var.enabled ? 1 : 0
   name       = "${var.name}-acl"
-  user_names = var.enabled ? [aws_memorydb_user.memorydb_user[0].user_name] : ["default-user"]
+  user_names = var.enabled ? [aws_memorydb_user.memorydb_user[0].user_name] : [var.user_name]
 
   tags = var.tags
 }
