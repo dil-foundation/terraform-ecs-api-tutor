@@ -48,9 +48,15 @@ resource "aws_memorydb_cluster" "memorydb" {
   tags = var.tags
 }
 
-# Create MemoryDB user - always create it to avoid state conflicts
+# Check if the user already exists
+data "aws_memorydb_user" "existing_user" {
+  count     = var.enabled ? 1 : 0
+  user_name = "default-user"
+}
+
+# Only create the user if it doesn't exist
 resource "aws_memorydb_user" "memorydb_user" {
-  count         = var.enabled ? 1 : 0
+  count         = var.enabled && length(data.aws_memorydb_user.existing_user) == 0 ? 1 : 0
   user_name     = "default-user"
   access_string = "on ~* &* +@all"
 
@@ -65,7 +71,7 @@ resource "aws_memorydb_user" "memorydb_user" {
 resource "aws_memorydb_acl" "memorydb_acl" {
   count      = var.enabled ? 1 : 0
   name       = "${var.name}-acl"
-  user_names = var.enabled ? [aws_memorydb_user.memorydb_user[0].user_name] : ["default-user"]
+  user_names = var.enabled ? (length(data.aws_memorydb_user.existing_user) > 0 ? [data.aws_memorydb_user.existing_user[0].user_name] : [aws_memorydb_user.memorydb_user[0].user_name]) : ["default-user"]
 
   tags = var.tags
 }

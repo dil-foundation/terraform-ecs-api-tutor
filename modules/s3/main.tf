@@ -6,12 +6,20 @@ resource "aws_s3_bucket" "s3_bucket" {
   bucket        = var.bucket_name
   force_destroy = true
 
-  website {
-    index_document = "index.html"
-    error_document = "404.html"
+  tags = var.tags
+}
+
+# Use the new aws_s3_bucket_website_configuration resource instead of deprecated website block
+resource "aws_s3_bucket_website_configuration" "s3_bucket" {
+  bucket = aws_s3_bucket.s3_bucket.id
+
+  index_document {
+    suffix = "index.html"
   }
 
-  tags = var.tags
+  error_document {
+    key = "404.html"
+  }
 }
 
 # Use the new aws_s3_bucket_policy resource instead of deprecated policy block
