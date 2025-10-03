@@ -38,11 +38,8 @@ resource "aws_s3_bucket" "web" {
   )
 }
 
-# Use the new aws_s3_bucket_acl resource instead of deprecated acl block
-resource "aws_s3_bucket_acl" "web" {
-  bucket = aws_s3_bucket.web.id
-  acl    = var.bucket_acl
-}
+# ACL is not needed for private buckets with modern S3 settings
+# Modern S3 buckets have ACLs disabled by default and use bucket policies for access control
 
 # Use the new aws_s3_bucket_versioning resource instead of deprecated versioning block
 resource "aws_s3_bucket_versioning" "web" {
