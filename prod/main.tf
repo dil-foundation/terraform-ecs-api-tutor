@@ -96,7 +96,7 @@ module "ecs_fargate" {
   container_definitions = jsonencode([
     {
       name      = local.container_name
-      image     = "342834686411.dkr.ecr.us-east-2.amazonaws.com/ai-tutor-api:${var.ai-tutor_image_tag}"
+      image     = "${data.aws_ecr_repository.existing.repository_url}:${var.ai-tutor_image_tag}"
       essential = true
       cpu       = 2048
       memory    = 16384
@@ -712,6 +712,9 @@ module "s3-bucket" {
 data "aws_ecr_repository" "existing" {
   name = "ai-tutor-api"
 }
+
+# Note: Using image tags instead of digests for better compatibility
+# The force_new_deployment setting will ensure new images are pulled
 
 # Use existing ECR repository for db-mcp-server
 data "aws_ecr_repository" "db_mcp_server" {
