@@ -92,7 +92,7 @@ module "ecs_fargate" {
   container_definitions = jsonencode([
     {
       name      = local.container_name
-      image     = "342834686411.dkr.ecr.us-east-2.amazonaws.com/ai-tutor-api:${var.ai-tutor_image_tag}"
+      image     = "${data.aws_ecr_image.ai_tutor_latest.image_uri}@${data.aws_ecr_image.ai_tutor_latest.image_digest}"
       essential = true
       cpu       = 2048
       memory    = 16384
@@ -707,6 +707,12 @@ module "s3-bucket" {
 # Use existing ECR repository instead of creating a new one
 data "aws_ecr_repository" "existing" {
   name = "ai-tutor-api"
+}
+
+# Get the latest image digest to force deployment when image changes
+data "aws_ecr_image" "ai_tutor_latest" {
+  repository_name = data.aws_ecr_repository.existing.name
+  image_tag       = var.ai-tutor_image_tag
 }
 
 # Use existing ECR repository for db-mcp-server

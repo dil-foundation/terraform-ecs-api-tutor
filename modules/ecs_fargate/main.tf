@@ -60,6 +60,9 @@ resource "aws_ecs_service" "default" {
   # Propagate tags from service to tasks
   propagate_tags = "SERVICE"
 
+  # Force new deployment when task definition changes
+  force_new_deployment = true
+
   lifecycle {
     # https://www.terraform.io/docs/providers/aws/r/ecs_service.html#ignoring-changes-to-desired-count
     ignore_changes = [desired_count]
@@ -139,8 +142,13 @@ resource "aws_ecs_task_definition" "default" {
   # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#network_mode
   network_mode = "awsvpc"
 
-  # A mapping of tags to assign to the resource.
-  tags = merge({ "Name" = var.name }, var.tags)
+  # Add a timestamp to force task definition updates when container definitions change
+  # This ensures the service picks up new image tags automatically
+  tags = merge(
+    { "Name" = var.name },
+    { "LastUpdated" = timestamp() },
+    var.tags
+  )
 }
 
 # ECS Task Execution IAM Role
