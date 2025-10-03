@@ -142,11 +142,11 @@ resource "aws_ecs_task_definition" "default" {
   # https://docs.aws.amazon.com/AmazonECS/latest/developerguide/task_definition_parameters.html#network_mode
   network_mode = "awsvpc"
 
-  # Add a timestamp to force task definition updates when container definitions change
+  # Add a hash of container definitions to force task definition updates when images change
   # This ensures the service picks up new image tags automatically
   tags = merge(
     { "Name" = var.name },
-    { "LastUpdated" = timestamp() },
+    { "ImageHash" = md5(var.container_definitions) },
     var.tags
   )
 }

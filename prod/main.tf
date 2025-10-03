@@ -96,7 +96,7 @@ module "ecs_fargate" {
   container_definitions = jsonencode([
     {
       name      = local.container_name
-      image     = "${data.aws_ecr_image.ai_tutor_latest.image_uri}@${data.aws_ecr_image.ai_tutor_latest.image_digest}"
+      image     = "${data.aws_ecr_repository.existing.repository_url}:${var.ai-tutor_image_tag}"
       essential = true
       cpu       = 2048
       memory    = 16384
@@ -713,11 +713,8 @@ data "aws_ecr_repository" "existing" {
   name = "ai-tutor-api"
 }
 
-# Get the latest image digest to force deployment when image changes
-data "aws_ecr_image" "ai_tutor_latest" {
-  repository_name = data.aws_ecr_repository.existing.name
-  image_tag       = var.ai-tutor_image_tag
-}
+# Note: Using image tags instead of digests for better compatibility
+# The force_new_deployment setting will ensure new images are pulled
 
 # Use existing ECR repository for db-mcp-server
 data "aws_ecr_repository" "db_mcp_server" {
