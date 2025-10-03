@@ -25,7 +25,6 @@ resource "aws_s3_bucket_policy" "web" {
 
 resource "aws_s3_bucket" "web" {
   bucket        = local.bucket_name
-  acl           = var.bucket_acl
   force_destroy = var.bucket_force_destroy
 
   tags = merge(
@@ -37,6 +36,12 @@ resource "aws_s3_bucket" "web" {
     },
     var.tags,
   )
+}
+
+# Use the new aws_s3_bucket_acl resource instead of deprecated acl block
+resource "aws_s3_bucket_acl" "web" {
+  bucket = aws_s3_bucket.web.id
+  acl    = var.bucket_acl
 }
 
 # Use the new aws_s3_bucket_versioning resource instead of deprecated versioning block
@@ -55,6 +60,10 @@ resource "aws_s3_bucket_lifecycle_configuration" "web" {
   rule {
     id     = "expire-old-versions"
     status = "Enabled"
+
+    filter {
+      prefix = ""
+    }
 
     noncurrent_version_expiration {
       noncurrent_days = 7
