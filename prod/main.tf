@@ -99,7 +99,7 @@ module "ecs_fargate" {
       image     = "${data.aws_ecr_repository.existing.repository_url}:${var.ai-tutor_image_tag}"
       essential = true
       cpu       = 4096
-      memory    = 32768
+      memory    = 24576
       logConfiguration = {
         logDriver = "awslogs"
         options = {
@@ -165,7 +165,7 @@ module "ecs_fargate" {
   platform_version                   = "LATEST"
   source_cidr_blocks                 = ["0.0.0.0/0"]
   cpu                                = 4096
-  memory                             = 32768
+  memory                             = 24576
   requires_compatibilities           = ["FARGATE"]
   iam_path                           = "/service_role/"
   description                        = "This is ${local.tenant_name}-UAT"
