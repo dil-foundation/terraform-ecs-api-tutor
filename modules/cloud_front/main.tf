@@ -52,7 +52,7 @@ resource "aws_cloudfront_distribution" "cdn" {
   is_ipv6_enabled     = true
   default_root_object = var.default_root_object
   comment             = "${var.environment} environment - ${var.name}"
-  
+
   # Add aliases (domain names) if provided
   aliases = var.aliases
 

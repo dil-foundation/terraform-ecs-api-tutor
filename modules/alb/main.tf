@@ -184,7 +184,7 @@ resource "aws_lb_target_group" "default" {
   # This ensures WebSocket connections are routed to the same target
   stickiness {
     type            = "lb_cookie"
-    cookie_duration = 86400  # 24 hours
+    cookie_duration = 86400 # 24 hours
     enabled         = true
   }
 

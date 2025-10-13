@@ -52,7 +52,7 @@ module "cloudfront" {
   api_gateway_invoke_url  = ""
 
   # Domain names for production environment only
-  aliases = local.environment == "prod" ? ["learn.dil.org", "www.learn.dil.org"] : []
+  aliases             = local.environment == "prod" ? ["learn.dil.org", "www.learn.dil.org"] : []
   ssl_certificate_arn = local.environment == "prod" ? var.ssl_certificate_arn : ""
 
   min_ttl     = 0
@@ -226,7 +226,7 @@ module "ecs_fargate_db_mcp" {
       environment = [
         # Database Configuration
         { name = "DATABASE_URL", value = var.database_url },
-        
+
         # Application Environment
         { name = "ENVIRONMENT", value = "production" },
         { name = "MCP_HTTP_HOST", value = "0.0.0.0" },
@@ -399,7 +399,7 @@ locals {
   container_name = "${local.tenant_name}-ai-tutor-container-v2"
   container_port = tonumber(module.alb.alb_target_group_port)
   #host_port = tonumber(module.alb.http_port)
-  
+
   # db-mcp-server container configuration
   db_mcp_container_name = "${local.tenant_name}-db-mcp-container"
   db_mcp_container_port = 8001
@@ -461,10 +461,10 @@ module "alb" {
 
 # Target Group for db-mcp-server
 resource "aws_lb_target_group" "db_mcp" {
-  name     = "${local.tenant_name}-db-mcp-tg"
-  port     = 8001
-  protocol = "HTTP"
-  vpc_id   = module.vpc.vpc_id
+  name        = "${local.tenant_name}-db-mcp-tg"
+  port        = 8001
+  protocol    = "HTTP"
+  vpc_id      = module.vpc.vpc_id
   target_type = "ip"
 
   health_check {
@@ -580,11 +580,11 @@ module "vpc" {
   public_availability_zones  = data.aws_availability_zones.available.names
   private_subnet_cidr_blocks = [cidrsubnet(local.cidr_block, 8, 2), cidrsubnet(local.cidr_block, 8, 3)]
   private_availability_zones = data.aws_availability_zones.available.names
-  
+
   # Enable NAT Gateway for private subnet connectivity
   enabled_nat_gateway        = true
-  enabled_single_nat_gateway = true  # Use single NAT gateway to save costs
-  
+  enabled_single_nat_gateway = true # Use single NAT gateway to save costs
+
   tags = {
     Environment = "${local.environment}"
     Tenant      = "${local.tenant_name}"
