@@ -98,8 +98,8 @@ module "ecs_fargate" {
       name      = local.container_name
       image     = "${data.aws_ecr_repository.existing.repository_url}:${var.ai-tutor_image_tag}"
       essential = true
-      cpu       = 2048
-      memory    = 16384
+      cpu       = 4096
+      memory    = 32768
       logConfiguration = {
         logDriver = "awslogs"
         options = {
