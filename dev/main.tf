@@ -310,8 +310,9 @@ data "aws_iam_policy" "ecs_task_execution" {
 
 # AWS Secrets Manager for Google Credentials
 resource "aws_secretsmanager_secret" "google_credentials" {
-  name        = "${local.tenant_name}-google-credentials"
-  description = "Google Cloud Service Account credentials for AI Tutor"
+  name                    = "${local.tenant_name}-google-credentials"
+  description             = "Google Cloud Service Account credentials for AI Tutor"
+  recovery_window_in_days = 0  # Delete immediately without recovery window
 
   tags = {
     Environment = local.environment
