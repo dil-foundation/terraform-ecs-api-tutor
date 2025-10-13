@@ -26,6 +26,15 @@ jobs:
         with:
           terraform_version: 1.5.0
 
+      - name: Recover Scheduled Secrets
+        run: |
+          echo "Checking for secrets scheduled for deletion..."
+          SECRET_NAME="dil-prod-v2-google-credentials"
+          
+          # Try to restore the secret if it's scheduled for deletion
+          aws secretsmanager restore-secret --secret-id "$SECRET_NAME" --region us-east-2 2>/dev/null || echo "Secret not scheduled for deletion or doesn't exist"
+        continue-on-error: true
+
       - name: Cache Terraform plugins
         uses: actions/cache@v3
         with:
