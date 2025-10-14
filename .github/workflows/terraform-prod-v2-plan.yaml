@@ -18,7 +18,7 @@ jobs:
     name: Run Terraform Plan for Production V2
     steps:
       - name: Checkout files
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Configure AWS credentials
         uses: aws-actions/configure-aws-credentials@v2
@@ -33,7 +33,7 @@ jobs:
           terraform_version: 1.5.0
 
       - name: Cache Terraform plugins
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.terraform.d/plugin-cache
@@ -76,7 +76,7 @@ jobs:
           TF_CLI_ARGS: "-lock-timeout=300s"
 
       - name: Save Plan
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: prod-v2-tfplan
           path: prod-v2/tfplan
