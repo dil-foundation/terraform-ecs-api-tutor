@@ -1,0 +1,38 @@
+# Copy this file to terraform.tfvars and fill in your values
+# Or set these as GitHub Actions secrets with the same names
+
+# Supabase Configuration
+supabase_url         = "https://your-project.supabase.co"
+supabase_service_key = "your-supabase-service-key"
+
+# OpenAI Configuration  
+openai_api_key = "sk-your-openai-api-key"
+
+# ElevenLabs Configuration
+eleven_api_key  = "sk_your-elevenlabs-api-key"
+eleven_voice_id = "your-voice-id"
+
+# WordPress Configuration
+wp_site_url                 = "https://your-wordpress-site.com"
+wp_api_username             = "your-wp-api-username"
+wp_api_application_password = "your-wp-application-password"
+
+# Google Cloud Credentials (JSON content as string)
+google_credentials_json = "{\"type\":\"service_account\",\"project_id\":\"your-project\",...}"
+
+# Container Image Configuration
+ai-tutor_image_tag = "latest"
+
+# Database Configuration for db-mcp-server
+database_url = "postgresql://username:password@host:port/database"
+
+# db-mcp-server Container Image Configuration
+db_mcp_server_tag = "latest"
+
+# SSL Certificate for CloudFront (must be in us-east-1 region)
+# This certificate should cover learn.dil.org and www.learn.dil.org
+ssl_certificate_arn = "arn:aws:acm:us-east-1:342834686411:certificate/e687717b-da1f-431a-94eb-76f6a5e21ea4"
+
+# CloudFront Aliases (Production Domains)
+cloudfront_aliases = ["learn.dil.org", "www.learn.dil.org"]
+

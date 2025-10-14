@@ -1,0 +1,160 @@
+name: Prod-V2-Terraform-Destroy
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type "destroy-prod-v2" to confirm destruction'
+        required: true
+        default: ''
+      reason:
+        description: 'Reason for destroying production V2'
+        required: true
+
+permissions:
+  contents: read
+
+jobs:
+  Terraform-Destroy:
+    runs-on: ubuntu-latest
+    name: Destroy Production V2 Infrastructure
+    if: github.event.inputs.confirm == 'destroy-prod-v2'
+    steps:
+      - name: Checkout files
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v2
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: us-east-2
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 1.5.0
+
+      - name: Log Destruction Reason
+        run: |
+          echo "=== PRODUCTION V2 DESTRUCTION ==="
+          echo "Initiated by: ${{ github.actor }}"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          echo "Timestamp: $(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+          echo "================================"
+
+      - name: Cache Terraform plugins
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.terraform.d/plugin-cache
+            prod-v2/.terraform
+          key: ${{ runner.os }}-terraform-prod-v2-${{ hashFiles('**/*.tf') }}
+          restore-keys: |
+            ${{ runner.os }}-terraform-prod-v2-
+            
+      - name: Terraform Init
+        working-directory: prod-v2
+        run: terraform init 
+
+      - name: Terraform Plan Destroy
+        working-directory: prod-v2
+        run: terraform plan -destroy -out=destroy-tfplan
+        env:
+          TF_VAR_supabase_url: ${{ secrets.SUPABASE_URL }}
+          TF_VAR_supabase_service_key: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_eleven_api_key: ${{ secrets.ELEVEN_API_KEY }}
+          TF_VAR_eleven_voice_id: ${{ secrets.ELEVEN_VOICE_ID }}
+          TF_VAR_wp_site_url: ${{ secrets.WP_SITE_URL }}
+          TF_VAR_wp_api_username: ${{ secrets.WP_API_USERNAME }}
+          TF_VAR_wp_api_application_password: ${{ secrets.WP_API_APPLICATION_PASSWORD }}
+          TF_VAR_google_credentials_json: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          TF_VAR_database_url: ${{ secrets.DATABASE_URL }}
+          TF_VAR_ai-tutor_image_tag: "latest"
+          TF_VAR_db_mcp_server_tag: "latest"
+          TF_VAR_ssl_certificate_arn: "arn:aws:acm:us-east-1:342834686411:certificate/e687717b-da1f-431a-94eb-76f6a5e21ea4"
+          TF_VAR_cloudfront_aliases: '["learn.dil.org", "www.learn.dil.org"]'
+          TF_CLI_ARGS: "-lock-timeout=300s"
+
+      - name: Disable ALB Deletion Protection
+        run: |
+          echo "Disabling ALB deletion protection..."
+          ALB_ARN=$(aws elbv2 describe-load-balancers \
+            --names dil-prod-v2-fargate-lb \
+            --query 'LoadBalancers[0].LoadBalancerArn' \
+            --output text 2>/dev/null || echo "")
+          
+          if [ -n "$ALB_ARN" ]; then
+            aws elbv2 modify-load-balancer-attributes \
+              --load-balancer-arn "$ALB_ARN" \
+              --attributes Key=deletion_protection.enabled,Value=false
+            echo "ALB deletion protection disabled"
+          else
+            echo "ALB not found or already deleted"
+          fi
+        continue-on-error: true
+
+      - name: Terraform Destroy
+        working-directory: prod-v2
+        run: terraform destroy -auto-approve
+        env:
+          TF_VAR_supabase_url: ${{ secrets.SUPABASE_URL }}
+          TF_VAR_supabase_service_key: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          TF_VAR_openai_api_key: ${{ secrets.OPENAI_API_KEY }}
+          TF_VAR_eleven_api_key: ${{ secrets.ELEVEN_API_KEY }}
+          TF_VAR_eleven_voice_id: ${{ secrets.ELEVEN_VOICE_ID }}
+          TF_VAR_wp_site_url: ${{ secrets.WP_SITE_URL }}
+          TF_VAR_wp_api_username: ${{ secrets.WP_API_USERNAME }}
+          TF_VAR_wp_api_application_password: ${{ secrets.WP_API_APPLICATION_PASSWORD }}
+          TF_VAR_google_credentials_json: ${{ secrets.GOOGLE_CREDENTIALS_JSON }}
+          TF_VAR_database_url: ${{ secrets.DATABASE_URL }}
+          TF_VAR_ai-tutor_image_tag: "latest"
+          TF_VAR_db_mcp_server_tag: "latest"
+          TF_VAR_ssl_certificate_arn: "arn:aws:acm:us-east-1:342834686411:certificate/e687717b-da1f-431a-94eb-76f6a5e21ea4"
+          TF_VAR_cloudfront_aliases: '["learn.dil.org", "www.learn.dil.org"]'
+          TF_CLI_ARGS: "-lock-timeout=300s"
+
+      - name: Cleanup S3 Buckets (if needed)
+        run: |
+          echo "Cleaning up S3 buckets..."
+          
+          # List of bucket patterns to clean
+          BUCKET_PATTERNS=(
+            "dil-prod-v2-s3-lb-log-ecs-fargate-*"
+            "dil-prod-v2-s3-access-log-ecs-fargate-*"
+            "dil-prod-v2-admin-portal-*"
+          )
+          
+          for pattern in "${BUCKET_PATTERNS[@]}"; do
+            buckets=$(aws s3api list-buckets --query "Buckets[?contains(Name, '$(echo $pattern | cut -d'*' -f1)')].Name" --output text)
+            for bucket in $buckets; do
+              echo "Emptying bucket: $bucket"
+              aws s3 rm s3://$bucket --recursive 2>/dev/null || true
+              echo "Deleting bucket: $bucket"
+              aws s3api delete-bucket --bucket $bucket 2>/dev/null || true
+            done
+          done
+        continue-on-error: true
+
+      - name: Notify Completion
+        if: success()
+        run: |
+          echo "=== DESTRUCTION COMPLETE ==="
+          echo "Production V2 infrastructure has been destroyed"
+          echo "Reason: ${{ github.event.inputs.reason }}"
+          echo "⚠️  Remember to:"
+          echo "1. Verify all resources are deleted in AWS Console"
+          echo "2. Check for any remaining resources that may incur costs"
+          echo "3. Update DNS records if they were pointing to this environment"
+          echo "4. Remove S3 state bucket if no longer needed: dil-prod-v2-terraform-state"
+          echo "5. Remove DynamoDB lock table if no longer needed: dil-prod-v2-terraform-locks"
+
+      - name: Notify Failure
+        if: failure()
+        run: |
+          echo "❌ DESTRUCTION FAILED"
+          echo "Some resources may still exist and incur costs"
+          echo "Please check AWS Console and CloudWatch logs"
+          echo "You may need to manually delete remaining resources"
+

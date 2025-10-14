@@ -1,0 +1,84 @@
+variable "supabase_url" {
+  description = "Supabase URL for the AI Tutor Backend"
+  type        = string
+  sensitive   = true
+}
+
+variable "supabase_service_key" {
+  description = "Supabase service key for the AI Tutor Backend"
+  type        = string
+  sensitive   = true
+}
+
+variable "openai_api_key" {
+  description = "OpenAI API key for the AI Tutor Backend"
+  type        = string
+  sensitive   = true
+}
+
+variable "eleven_api_key" {
+  description = "ElevenLabs API key for text-to-speech"
+  type        = string
+  sensitive   = true
+}
+
+variable "eleven_voice_id" {
+  description = "ElevenLabs voice ID for text-to-speech"
+  type        = string
+  sensitive   = true
+}
+
+
+variable "wp_site_url" {
+  description = "WordPress site URL for the AI Tutor Backend"
+  type        = string
+  sensitive   = true
+}
+
+variable "wp_api_username" {
+  description = "WordPress API username for the AI Tutor Backend"
+  type        = string
+  sensitive   = true
+}
+
+variable "wp_api_application_password" {
+  description = "WordPress API application password for the AI Tutor Backend"
+  type        = string
+  sensitive   = true
+}
+
+variable "google_credentials_json" {
+  description = "Google Cloud Service Account credentials JSON for the AI Tutor Backend"
+  type        = string
+  sensitive   = true
+}
+
+variable "ai-tutor_image_tag" {
+  description = "Docker image tag for the AI Tutor API container"
+  type        = string
+  default     = "latest"
+}
+
+variable "database_url" {
+  description = "Database URL for the db-mcp-server"
+  type        = string
+  sensitive   = true
+}
+
+variable "db_mcp_server_tag" {
+  description = "Docker image tag for the db-mcp-server container"
+  type        = string
+  default     = "latest"
+}
+
+variable "ssl_certificate_arn" {
+  description = "SSL certificate ARN for CloudFront distribution (must be in us-east-1 region)"
+  type        = string
+}
+
+variable "cloudfront_aliases" {
+  description = "List of domain aliases for CloudFront distribution"
+  type        = list(string)
+  default     = ["learn.dil.org", "www.learn.dil.org"]
+}
+
