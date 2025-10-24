@@ -48,24 +48,13 @@ resource "aws_memorydb_cluster" "memorydb" {
   tags = var.tags
 }
 
-# Create MemoryDB user - use a more robust approach
-resource "aws_memorydb_user" "memorydb_user" {
-  count         = var.enabled ? 1 : 0
-  user_name     = var.user_name
-  access_string = "on ~* &* +@all"
-
-  authentication_mode {
-    type      = "password"
-    passwords = ["RedisSecurePassword2024!"]
-  }
-
-  tags = var.tags
-}
+# MemoryDB user creation removed - using existing user
+# The user 'admin-user' already exists and is managed outside of Terraform
 
 resource "aws_memorydb_acl" "memorydb_acl" {
   count      = var.enabled ? 1 : 0
   name       = "${var.name}-acl"
-  user_names = var.enabled ? [aws_memorydb_user.memorydb_user[0].user_name] : [var.user_name]
+  user_names = [var.user_name]
 
   tags = var.tags
 }
