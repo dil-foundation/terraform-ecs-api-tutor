@@ -621,12 +621,6 @@ module "memorydb" {
   }
 }
 
-# Data source for existing MemoryDB user
-data "aws_memorydb_user" "existing_user" {
-  count     = local.enable_redis ? 1 : 0
-  user_name = "admin-user"
-}
-
 # Security Group for MemoryDB
 resource "aws_security_group" "memorydb_sg" {
   count       = local.enable_redis ? 1 : 0
