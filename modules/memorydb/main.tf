@@ -48,8 +48,24 @@ resource "aws_memorydb_cluster" "memorydb" {
   tags = var.tags
 }
 
-# MemoryDB user creation removed - using existing user
-# The user 'admin-user' already exists and is managed outside of Terraform
+# Create MemoryDB user
+resource "aws_memorydb_user" "memorydb_user" {
+  count         = var.enabled ? 1 : 0
+  user_name     = var.user_name
+  access_string = "on ~* &* +@all"
+
+  authentication_mode {
+    type      = "password"
+    passwords = ["RedisSecurePassword2024!"]
+  }
+
+  tags = var.tags
+
+  # Add lifecycle rule to prevent accidental deletion
+  lifecycle {
+    prevent_destroy = true
+  }
+}
 
 resource "aws_memorydb_acl" "memorydb_acl" {
   count      = var.enabled ? 1 : 0
