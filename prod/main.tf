@@ -612,6 +612,8 @@ module "memorydb" {
   engine_version         = "7.0"
   num_shards             = 1
   num_replicas_per_shard = 1
+  user_name              = "default-user"
+  tls_enabled            = true
 
   tags = {
     Environment = "${local.environment}"
